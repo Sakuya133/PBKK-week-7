@@ -6,14 +6,13 @@ Arsitektur produksi: **WPF → HTTPS → PosServer → SQL Server**. Kredensial 
 
 ## Langkah berikutnya untuk tim frontend
 
-Proyek WPF belum ada di repository; lokasi yang disarankan ialah `src/PosWpf/` dengan target `net10.0-windows`, lalu tambahkan ke `PosDesktop.slnx`. Pekerjaan frontend ada di proyek itu: Views/XAML, ViewModels, styling, navigasi, dan dialog konfirmasi pembayaran.
+Buat proyek WPF `net10.0-windows` di `src/PosWpf/` (atau gunakan proyek tim yang sudah ada) dan tambahkan ke solution. Referensikan **hanya** `src/PosClient/PosClient.csproj`; kontrak dan DTO ada di `src/PosContracts/Contracts.cs`.
 
-1. Tambahkan referensi proyek WPF ke `src/PosClient/PosClient.csproj` saja. Interface, DTO, dan `ServiceResult<T>` ada di `src/PosContracts/Contracts.cs` (namespace `PosBackend`); implementasi HTTP ada di `src/PosClient/PosRemoteServices.cs`.
-2. Pada startup WPF, buat satu `PosRemoteServices` dengan URL API, lalu berikan `Auth`, `Products`, `Transactions`, dan `Dashboard` ke ViewModels. Untuk pengembangan lokal, jalankan `PosServer` dan SQL Server sesuai bagian [setup](#setup-sql-server) dan [menjalankan API](#menjalankan-api). Akun demo tersedia lewat `PosSetup --demo` pada database pengembangan.
-3. Hubungkan halaman login ke `Auth`; halaman Admin ke produk, transaksi, dan dashboard; halaman Kasir ke katalog, pilihan pelanggan, checkout, dan riwayat; halaman Pelanggan ke katalog dan riwayat. Matriks izin dan signature method ada di bawah.
-4. Tampilkan `ServiceResult<T>.Message` saat gagal. Saat checkout, simpan satu `RequestId` untuk retry, gunakan `CustomerId=null` untuk “Umum”, dan minta kasir mengonfirmasi Tunai/QRIS secara manual sebelum memanggil service. Contoh kode ViewModel ada di [Contoh integrasi WPF](#contoh-integrasi-wpf).
+- Saat startup, buat satu `PosRemoteServices` dengan URL API dan berikan `Auth`, `Products`, `Transactions`, serta `Dashboard` ke ViewModels. Contoh: [integrasi WPF](#contoh-integrasi-wpf).
+- Buat Views/XAML dan ViewModels untuk login; produk, transaksi, dan dashboard Admin; checkout dan riwayat Kasir; katalog dan riwayat Pelanggan. Tampilkan `ServiceResult<T>.Message` saat operasi gagal.
+- Saat checkout, konfirmasi pembayaran manual, gunakan `CustomerId=null` untuk “Umum”, dan simpan `RequestId` yang sama untuk retry.
 
-Frontend hanya perlu URL API; jangan menaruh `POS_CONNECTION_STRING` atau akses `PosBackend` langsung di aplikasi WPF.
+Jalankan API dan SQL Server sesuai [panduan setup](#setup-sql-server). WPF hanya menyimpan URL API, bukan kredensial SQL.
 
 ## Teknologi dan struktur
 
