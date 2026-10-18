@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PosBackend/PosBackend.csproj" />
+    <Project Path="src/PosClient/PosClient.csproj" />
+    <Project Path="src/PosContracts/PosContracts.csproj" />
+    <Project Path="src/PosServer/PosServer.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PosBackend.Tests/PosBackend.Tests.csproj" />
+    <Project Path="tests/PosClient.Tests/PosClient.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/PosSetup/PosSetup.csproj" />
+  </Folder>
+</Solution>
