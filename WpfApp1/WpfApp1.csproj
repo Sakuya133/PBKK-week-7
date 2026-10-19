@@ -1,0 +1,66 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="foto\air.jfif" />
+    <None Remove="foto\air_mineral.jfif" />
+    <None Remove="foto\bakso_goreng.jfif" />
+    <None Remove="foto\blueberry_cheese_cake.jfif" />
+    <None Remove="foto\croissant_dubai.jfif" />
+    <None Remove="foto\dry_ramen.jfif" />
+    <None Remove="foto\es_coklat.jfif" />
+    <None Remove="foto\es_teh.jfif" />
+    <None Remove="foto\jus_alpukat.jfif" />
+    <None Remove="foto\kerupuk_pangsit.jfif" />
+    <None Remove="foto\lemonade.jfif" />
+    <None Remove="foto\mie_aceh.jpeg" />
+    <None Remove="foto\mie_bangladesh.jfif" />
+    <None Remove="foto\mie_goreng.jfif" />
+    <None Remove="foto\mie_goreng_pedas.jpeg" />
+    <None Remove="foto\mie_kering.jfif" />
+    <None Remove="foto\mie_ramen.jfif" />
+    <None Remove="foto\pangsit_mie_bakso.jpeg" />
+    <None Remove="foto\pisang_goreng.jfif" />
+    <None Remove="foto\ramen.jfif" />
+    <None Remove="foto\roti_ice_cream.jfif" />
+    <None Remove="foto\salt_bread.jfif" />
+    <None Remove="foto\strawberry_cheese_cake.jfif" />
+    <None Remove="foto\strawberry_chesse_cake.jfif" />
+    <None Remove="foto\ubi_goreng.jfif" />
+    <None Remove="foto\udang_rambutan.jfif" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="foto\air_mineral.jfif" />
+    <Resource Include="foto\bakso_goreng.jfif" />
+    <Resource Include="foto\blueberry_cheese_cake.jfif" />
+    <Resource Include="foto\croissant_dubai.jfif" />
+    <Resource Include="foto\dry_ramen.jfif" />
+    <Resource Include="foto\es_coklat.jfif" />
+    <Resource Include="foto\es_teh.jfif" />
+    <Resource Include="foto\jus_alpukat.jfif" />
+    <Resource Include="foto\kerupuk_pangsit.jfif" />
+    <Resource Include="foto\lemonade.jfif" />
+    <Resource Include="foto\mie_aceh.jpeg" />
+    <Resource Include="foto\mie_bangladesh.jfif" />
+    <Resource Include="foto\mie_goreng.jfif" />
+    <Resource Include="foto\mie_goreng_pedas.jpeg" />
+    <Resource Include="foto\mie_kering.jfif" />
+    <Resource Include="foto\pangsit_mie_bakso.jpeg" />
+    <Resource Include="foto\pisang_goreng.jfif" />
+    <Resource Include="foto\ramen.jfif" />
+    <Resource Include="foto\roti_ice_cream.jfif" />
+    <Resource Include="foto\salt_bread.jfif" />
+    <Resource Include="foto\strawberry_cheese_cake.jfif" />
+    <Resource Include="foto\ubi_goreng.jfif" />
+    <Resource Include="foto\udang_rambutan.jfif" />
+  </ItemGroup>
+
+</Project>

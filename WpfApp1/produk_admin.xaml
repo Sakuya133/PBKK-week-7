@@ -1,0 +1,1061 @@
+﻿<Window x:Class="WpfApp1.produk_admin"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="POS"
+        Height="650" Width="1000"
+        MinHeight="550" MinWidth="800"
+        WindowStartupLocation="CenterScreen"
+        Background="#F4F7FB">
+
+    <Window.Resources>
+        <Style x:Key="MenuButton" TargetType="Button">
+            <Setter Property="Height" Value="43"/>
+            <Setter Property="Margin" Value="12,4"/>
+            <Setter Property="Padding" Value="14,0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Foreground" Value="#E8EEF5"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="MenuBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="10">
+                            <ContentPresenter
+                                Margin="{TemplateBinding Padding}"
+                                VerticalAlignment="Center"/>
+                        </Border>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="MenuBorder"
+                                        Property="Background"
+                                        Value="#344B61"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ActionButton" TargetType="Button">
+            <Setter Property="Padding" Value="13,7"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="7"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Background="#FF3E4B5A" Margin="0,0,10,0" BorderThickness="10" CornerRadius="15">
+            <DockPanel LastChildFill="True">
+
+                <StackPanel DockPanel.Dock="Top"
+                            Margin="20,25,20,25">
+                    <TextBlock Text="GACOANNNN"
+                               FontSize="20"
+                               FontWeight="Bold"
+                               Foreground="White"/>
+
+                    <TextBlock Text="Admin"
+                               FontSize="12"
+                               Foreground="#AEBECD"
+                               Margin="0,5,0,0"/>
+                </StackPanel>
+
+                <StackPanel>
+                    <TextBlock Text="MENU UTAMA"
+                               Foreground="#8FA2B6"
+                               FontSize="10"
+                               FontWeight="Bold"
+                               Margin="24,0,0,10"/>
+
+                    <Button Content="▦   Dashboard"
+                            Style="{StaticResource MenuButton}"/>
+
+                    <Button Content="▣   Kasir"
+                            Style="{StaticResource MenuButton}"/>
+
+                    <Button Content="▤   Kategori"
+                            Style="{StaticResource MenuButton}"/>
+
+                    <Button Content="▧   Produk"
+                            Style="{StaticResource MenuButton}"
+                            Background="#3B5872"/>
+
+                    <Button Content="▥   Penjualan"
+                            Style="{StaticResource MenuButton}"/>
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Bottom"
+                            Margin="20,20,20,25">
+                    <Separator Background="#45586B"
+                               Margin="0,0,0,12"/>
+
+                </StackPanel>
+
+            </DockPanel>
+        </Border>
+
+        <Grid Grid.Column="1" Margin="28">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Margin="0,0,0,22">
+                <TextBlock Text="Kelola Produk"
+                           FontSize="27"
+                           FontWeight="Bold"
+                           Foreground="#1F2D3D"/>
+
+                <TextBlock
+                    Text="Atur produk yang tersedia di GACOANNNN."
+                    FontSize="13"
+                    Foreground="#788797"
+                    Margin="0,6,0,0"/>
+            </StackPanel>
+
+            <Grid Grid.Row="1" Margin="0,0,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Height="42"
+                        Background="White"
+                        CornerRadius="9"
+                        BorderBrush="#E0E7EF"
+                        BorderThickness="1"
+                        MaxWidth="700"
+                        HorizontalAlignment="Left">
+
+                    <TextBox Text="Cari Produk..."
+                             BorderThickness="0"
+                             Background="Transparent"
+                             VerticalContentAlignment="Center"
+                             Margin="12,0"
+                             Width="550"
+                             Foreground="#788797"/>
+                </Border>
+
+                <Button Grid.Column="1"
+                        Content="+ Tambah Produk"
+                        Background="#FF18825A"
+                        Foreground="White"
+                        FontWeight="SemiBold"
+                        Padding="16,10"
+                        BorderThickness="0"
+                        Cursor="Hand">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}"
+                                    CornerRadius="9"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </Grid>
+
+            <Grid Grid.Row="2" Margin="0,0,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+            </Grid>
+
+            <ScrollViewer Grid.Row="3"
+                          VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock Text="Daftar Produk"
+                               FontSize="17"
+                               FontWeight="Bold"
+                               Foreground="#263748"
+                               Margin="0,0,0,13"/>
+                    <WrapPanel x:Name="ContainerProduk">
+                        <Border Tag="Mie"
+                                Background="White"
+                                CornerRadius="13"
+                                Padding="16"
+                                Width="192"
+                                Margin="0,0,8,16"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Height="250">
+                            <StackPanel>
+                                <Image Source="/foto/dry_ramen.jfif"
+                                    Width="120"
+                                    Height="120"
+                                    Stretch="UniformToFill"/>
+                                <TextBlock Text="Dry Ramen"
+                                           HorizontalAlignment="Center"
+                                           FontSize="13"
+                                           FontWeight="Bold"
+                                           Foreground="#263748"
+                                           Margin="0,12,0,4"/>
+                                <TextBlock Text="Rp 35.000"
+                                           FontSize="12"
+                                           HorizontalAlignment="Center"
+                                           Foreground="#8492A1"/>
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0">
+                                    <Button Content="Edit"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Width="70" Background="#FF98DCED"/>
+                                    <Button Content="Hapus"
+                                        Style="{StaticResource ActionButton}"
+                                        Width="70" Background="#FFFF8585"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Tag="Mie"
+                            Background="White"
+                            CornerRadius="13"
+                            Padding="16"
+                            Width="192"
+                            Margin="20,0,20,16"
+                            VerticalAlignment="Top"
+                            Height="250">
+                            <StackPanel>
+                                <Image Source="/foto/ramen.jfif"
+                                    Width="120"
+                                    Height="120"
+                                    Stretch="UniformToFill"/>   
+                                <TextBlock Text="Mie Ramen"
+                                   HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#263748"
+                                   Margin="0,12,0,4"/>
+                                <TextBlock Text="Rp 40.000"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#8492A1"/>
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0">
+                                    <Button Content="Edit"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Width="70" Background="#FF98DCED"/>
+                                    <Button Content="Hapus"
+                                        Style="{StaticResource ActionButton}"
+                                        Width="70" Background="#FFFF8585"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Tag="Mie"
+                            Background="White"
+                            CornerRadius="13"
+                            Padding="16"
+                            Width="192"
+                            Margin="8,0,0,16"
+                            VerticalAlignment="Top"
+                            Height="250">
+                            <StackPanel>
+                                <Image Source="/foto/pangsit_mie_bakso.jpeg"
+                                    Width="120"
+                                    Height="120"
+                                    Stretch="UniformToFill"/>   
+                                <TextBlock Text="Pangsit Mie Bakso"
+                                   HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#263748"
+                                   Margin="0,12,0,4"/>
+                                <TextBlock Text="Rp 30.000"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#8492A1"/>
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0">
+                                    <Button Content="Edit"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Width="70" Background="#FF98DCED"/>
+                                    <Button Content="Hapus"
+                                        Style="{StaticResource ActionButton}"
+                                        Width="70" Background="#FFFF8585"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Tag="Mie"
+                            Background="White"
+                            CornerRadius="13"
+                            Padding="16"
+                            Width="192"
+                            Margin="0,0,8,16"
+                            VerticalAlignment="Top"
+                            Height="250">
+                            <StackPanel>
+                                <Image Source="/foto/mie_goreng.jfif"
+                                    Width="120"
+                                    Height="120"
+                                    Stretch="UniformToFill"/>
+                                <TextBlock Text="Mie Goreng"
+                                   HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#263748"
+                                   Margin="0,12,0,4"/>
+                                <TextBlock Text="Rp 25.000"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#8492A1"/>       
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0">
+                                    <Button Content="Edit"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Width="70" Background="#FF98DCED"/>
+                                    <Button Content="Hapus"
+                                        Style="{StaticResource ActionButton}"
+                                        Width="70" Background="#FFFF8585"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Tag="Mie"
+                            Background="White"
+                            CornerRadius="13"
+                            Padding="16"
+                            Width="192"
+                            Margin="20,0,20,16"
+                            VerticalAlignment="Top"
+                            Height="250">           
+                            <StackPanel>
+                                <Image Source="/foto/mie_kering.jfif"
+                                    Width="120"
+                                    Height="120"
+                                    Stretch="UniformToFill"/>       
+                                <TextBlock Text="Mie Kering"
+                                   HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#263748"
+                                   Margin="0,12,0,4"/>
+                                <TextBlock Text="Rp 35.000"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#8492A1"/>
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0">      
+                                    <Button Content="Edit"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Width="70" Background="#FF98DCED"/>
+                                    <Button Content="Hapus"
+                                        Style="{StaticResource ActionButton}"
+                                        Width="70" Background="#FFFF8585"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Tag="Mie"
+                            Background="White"
+                            CornerRadius="13"
+                            Padding="16"
+                            Width="192"
+                            Margin="8,0,0,16"
+                            VerticalAlignment="Top"
+                            Height="250">
+                            <StackPanel>
+                                <Image Source="/foto/mie_aceh.jpeg"
+                                    Width="120"
+                                    Height="120"
+                                    Stretch="UniformToFill"/>
+                                <TextBlock Text="Mie Aceh"
+                                   HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#263748"
+                                   Margin="0,12,0,4"/>
+                                <TextBlock Text="Rp 25.000"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#8492A1"/>
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0">
+                                    <Button Content="Edit"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Width="70" Background="#FF98DCED"/>
+                                    <Button Content="Hapus"
+                                        Style="{StaticResource ActionButton}"
+                                        Width="70" Background="#FFFF8585"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Tag="Mie"
+                            Background="White"
+                            CornerRadius="13"
+                            Padding="16"
+                            Width="192"
+                            Margin="0,0,8,16"
+                            VerticalAlignment="Top"
+                            Height="250">   
+                            <StackPanel>
+                                <Image Source="/foto/mie_bangladesh.jfif"
+                                    Width="120"
+                                    Height="120"
+                                    Stretch="UniformToFill"/>   
+                                <TextBlock Text="Mie Bangladesh"
+                                   HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#263748"
+                                   Margin="0,12,0,4"/>
+                                <TextBlock Text="Rp 25.000"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#8492A1"/>
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0">
+                                    <Button Content="Edit"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Width="70" Background="#FF98DCED"/>
+                                    <Button Content="Hapus"
+                                        Style="{StaticResource ActionButton}"
+                                        Width="70" Background="#FFFF8585"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Tag="Mie"
+                            Background="White"
+                            CornerRadius="13"
+                            Padding="16"
+                            Width="192"
+                            Margin="20,0,20,16"
+                            VerticalAlignment="Top"
+                            Height="250">       
+                            <StackPanel>
+                                <Image Source="/foto/mie_goreng_pedas.jpeg"
+                                    Width="120"
+                                    Height="120"
+                                    Stretch="UniformToFill"/>
+                                <TextBlock Text="Mie Goreng Pedas"
+                                   HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#263748"
+                                   Margin="0,12,0,4"/>      
+                                <TextBlock Text="Rp 20.000"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#8492A1"/>
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0">
+                                    <Button Content="Edit"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Width="70" Background="#FF98DCED"/>
+                                    <Button Content="Hapus"
+                                        Style="{StaticResource ActionButton}"
+                                        Width="70" Background="#FFFF8585"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Tag="Kue"
+                            Background="White"
+                            CornerRadius="13"
+                            Padding="16"
+                            Width="192"
+                            Margin="8,0,0,16"
+                            VerticalAlignment="Top"
+                            Height="250">
+                            <StackPanel>
+                                <Image Source="/foto/blueberry_cheese_cake.jfif"
+                                    Width="120"
+                                    Height="120"
+                                    Stretch="UniformToFill"/>
+                                <TextBlock Text="Blueberry Cheese Cake"
+                                   HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#263748"
+                                   Margin="0,12,0,4"/>
+                                <TextBlock Text="Rp 30.000"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#8492A1"/>
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0">
+                                    <Button Content="Edit"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Width="70" Background="#FF98DCED"/>
+                                    <Button Content="Hapus"
+                                        Style="{StaticResource ActionButton}"
+                                        Width="70" Background="#FFFF8585"/>     
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Tag="Kue"
+                            Background="White"
+                            CornerRadius="13"
+                            Padding="16"
+                            Width="192"
+                            Margin="0,0,8,16"
+                            VerticalAlignment="Top"
+                            Height="250">
+                            <StackPanel>
+                                <Image Source="/foto/strawberry_cheese_cake.jfif"
+                                    Width="120"
+                                    Height="120"
+                                    Stretch="UniformToFill"/>
+                                <TextBlock Text="Strawberry Cheese Cake"
+                                   HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#263748"
+                                   Margin="0,12,0,4"/>
+                                <TextBlock Text="Rp 30.000"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#8492A1"/>
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0">
+                                    <Button Content="Edit"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Width="70" Background="#FF98DCED"/>
+                                    <Button Content="Hapus"
+                                        Style="{StaticResource ActionButton}"
+                                        Width="70" Background="#FFFF8585"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Tag="Kue"
+                            Background="White"
+                            CornerRadius="13"
+                            Padding="16"
+                            Width="192"
+                            Margin="20,0,20,16"
+                            VerticalAlignment="Top"
+                            Height="250">
+                            <StackPanel>
+                                <Image Source="/foto/roti_ice_cream.jfif"
+                                    Width="120"
+                                    Height="120"
+                                    Stretch="UniformToFill"/>
+                                <TextBlock Text="Roti Ice Cream"
+                                   HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#263748"
+                                   Margin="0,12,0,4"/>
+                                <TextBlock Text="Rp 15.000"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#8492A1"/>
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0">
+                                    <Button Content="Edit"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Width="70" Background="#FF98DCED"/>
+                                    <Button Content="Hapus"
+                                        Style="{StaticResource ActionButton}"
+                                        Width="70" Background="#FFFF8585"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Tag="Kue"
+                            Background="White"
+                            CornerRadius="13"
+                            Padding="16"
+                            Width="192"
+                            Margin="8,0,0,16"
+                            VerticalAlignment="Top"
+                            Height="250">
+                            <StackPanel>
+                                <Image Source="/foto/salt_bread.jfif"
+                                    Width="120"
+                                    Height="120"
+                                    Stretch="UniformToFill"/>
+                                <TextBlock Text="Salt Bread"
+                                   HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#263748"
+                                   Margin="0,12,0,4"/>
+                                <TextBlock Text="Rp 27.000"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#8492A1"/>
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0">
+                                    <Button Content="Edit"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Width="70" Background="#FF98DCED"/>
+                                    <Button Content="Hapus"
+                                        Style="{StaticResource ActionButton}"
+                                        Width="70" Background="#FFFF8585"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Tag="Kue"
+                            Background="White"
+                            CornerRadius="13"
+                            Padding="16"
+                            Width="192"
+                            Margin="0,0,8,16"
+                            VerticalAlignment="Top"
+                            Height="250">
+                            <StackPanel>
+                                <Image Source="/foto/Croissant_dubai.jfif"
+                                    Width="120"
+                                    Height="120"
+                                    Stretch="UniformToFill"/>
+                                <TextBlock Text="Croissant Dubai"
+                                   HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#263748"
+                                   Margin="0,12,0,4"/>
+                                <TextBlock Text="Rp 30.000"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#8492A1"/>
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0">
+                                    <Button Content="Edit"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Width="70" Background="#FF98DCED"/>
+                                    <Button Content="Hapus"
+                                        Style="{StaticResource ActionButton}"
+                                        Width="70" Background="#FFFF8585"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Tag="Gorengan"
+                            Background="White"
+                            CornerRadius="13"
+                            Padding="16"
+                            Width="192"
+                            Margin="20,0,20,16"
+                            VerticalAlignment="Top"
+                            Height="250">
+                            <StackPanel>
+                                <Image Source="/foto/kerupuk_pangsit.jfif"
+                                    Width="120"
+                                    Height="120"
+                                    Stretch="UniformToFill"/>
+                                <TextBlock Text="Kerupuk Pangsit"
+                                   HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#263748"
+                                   Margin="0,12,0,4"/>
+                                <TextBlock Text="Rp 15.000"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#8492A1"/>
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0">
+                                    <Button Content="Edit"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Width="70" Background="#FF98DCED"/>
+                                    <Button Content="Hapus"
+                                        Style="{StaticResource ActionButton}"
+                                        Width="70" Background="#FFFF8585"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Tag="Gorengan"
+                            Background="White"
+                            CornerRadius="13"
+                            Padding="16"
+                            Width="192"
+                            Margin="8,0,0,16"
+                            VerticalAlignment="Top"
+                            Height="250">
+                            <StackPanel>
+                                <Image Source="/foto/bakso_goreng.jfif"
+                                    Width="120"
+                                    Height="120"
+                                    Stretch="UniformToFill"/>
+                                <TextBlock Text="Bakso Goreng"
+                                   HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#263748"
+                                   Margin="0,12,0,4"/>
+                                <TextBlock Text="Rp 15.000"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#8492A1"/>
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0">
+                                    <Button Content="Edit"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Width="70" Background="#FF98DCED"/>
+                                    <Button Content="Hapus"
+                                        Style="{StaticResource ActionButton}"
+                                        Width="70" Background="#FFFF8585"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Tag="Gorengan"
+                            Background="White"
+                            CornerRadius="13"
+                            Padding="16"
+                            Width="192"
+                            Margin="0,0,8,16"
+                            VerticalAlignment="Top"
+                            Height="250">
+                            <StackPanel>
+                                <Image Source="/foto/pisang_goreng.jfif"
+                                    Width="120"
+                                    Height="120"
+                                    Stretch="UniformToFill"/>
+                                <TextBlock Text="Pisang Goreng"
+                                   HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#263748"
+                                   Margin="0,12,0,4"/>
+                                <TextBlock Text="Rp 15.000"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#8492A1"/>
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0">
+                                    <Button Content="Edit"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Width="70" Background="#FF98DCED"/>
+                                    <Button Content="Hapus"
+                                        Style="{StaticResource ActionButton}"
+                                        Width="70" Background="#FFFF8585"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Tag="Gorengan"
+                            Background="White"
+                            CornerRadius="13"
+                            Padding="16"
+                            Width="192"
+                            Margin="20,0,20,16"
+                            VerticalAlignment="Top"
+                            Height="250">
+                            <StackPanel>
+                                <Image Source="/foto/udang_rambutan.jfif"
+                                    Width="120"
+                                    Height="120"
+                                    Stretch="UniformToFill"/>
+                                <TextBlock Text="Udang Rambutan"
+                                   HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#263748"
+                                   Margin="0,12,0,4"/>
+                                <TextBlock Text="Rp 15.000"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#8492A1"/>
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0">
+                                    <Button Content="Edit"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Width="70" Background="#FF98DCED"/>
+                                    <Button Content="Hapus"
+                                        Style="{StaticResource ActionButton}"
+                                        Width="70" Background="#FFFF8585"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Tag="Gorengan"
+                            Background="White"
+                            CornerRadius="13"
+                            Padding="16"
+                            Width="192"
+                            Margin="8,0,0,16"
+                            VerticalAlignment="Top"
+                            Height="250">
+                            <StackPanel>
+                                <Image Source="/foto/ubi_goreng.jfif"
+                                    Width="120"
+                                    Height="120"
+                                    Stretch="UniformToFill"/>
+                                <TextBlock Text="Ubi Goreng"
+                                   HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#263748"
+                                   Margin="0,12,0,4"/>
+                                <TextBlock Text="Rp 15.000"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#8492A1"/>
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0">
+                                    <Button Content="Edit"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Width="70" Background="#FF98DCED"/>
+                                    <Button Content="Hapus"
+                                        Style="{StaticResource ActionButton}"
+                                        Width="70" Background="#FFFF8585"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Tag="Minuman"
+                            Background="White"
+                            CornerRadius="13"
+                            Padding="16"
+                            Width="192"
+                            Margin="0,0,8,16"
+                            VerticalAlignment="Top"
+                            Height="250">
+                            <StackPanel>
+                                <Image Source="/foto/es_coklat.jfif"
+                                    Width="120"
+                                    Height="120"
+                                    Stretch="UniformToFill"/>
+                                <TextBlock Text="Es Coklat"
+                                   HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#263748"
+                                   Margin="0,12,0,4"/>
+                                <TextBlock Text="Rp 15.000"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#8492A1"/>
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0">
+                                    <Button Content="Edit"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Width="70" Background="#FF98DCED"/>
+                                    <Button Content="Hapus"
+                                        Style="{StaticResource ActionButton}"
+                                        Width="70" Background="#FFFF8585"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Tag="Minuman"
+                            Background="White"
+                            CornerRadius="13"
+                            Padding="16"
+                            Width="192"
+                            Margin="20,0,20,16"
+                            VerticalAlignment="Top"
+                            Height="250">
+                            <StackPanel>
+                                <Image Source="/foto/lemonade.jfif"
+                                    Width="120"
+                                    Height="120"
+                                    Stretch="UniformToFill"/>
+                                <TextBlock Text="Lemonade"
+                                   HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#263748"
+                                   Margin="0,12,0,4"/>
+                                <TextBlock Text="Rp 15.000"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#8492A1"/>
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0">
+                                    <Button Content="Edit"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Width="70" Background="#FF98DCED"/>
+                                    <Button Content="Hapus"
+                                        Style="{StaticResource ActionButton}"
+                                        Width="70" Background="#FFFF8585"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Tag="Minuman"
+                            Background="White"
+                            CornerRadius="13"
+                            Padding="16"
+                            Width="192"
+                            Margin="8,0,0,16"
+                            VerticalAlignment="Top"
+                            Height="250">
+                            <StackPanel>
+                                <Image Source="/foto/jus_alpukat.jfif"
+                                    Width="120"
+                                    Height="120"
+                                    Stretch="UniformToFill"/>
+                                <TextBlock Text="Jus Alpukat"
+                                   HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#263748"
+                                   Margin="0,12,0,4"/>
+                                <TextBlock Text="Rp 15.000"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#8492A1"/>
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0">
+                                    <Button Content="Edit"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Width="70" Background="#FF98DCED"/>
+                                    <Button Content="Hapus"
+                                        Style="{StaticResource ActionButton}"
+                                        Width="70" Background="#FFFF8585"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Tag="Minuman"
+                            Background="White"
+                            CornerRadius="13"
+                            Padding="16"
+                            Width="192"
+                            Margin="0,0,8,16"
+                            VerticalAlignment="Top"
+                            Height="250">
+                            <StackPanel>
+                                <Image Source="/foto/es_teh.jfif"
+                                    Width="120"
+                                    Height="120"
+                                    Stretch="UniformToFill"/>
+                                <TextBlock Text="Es Teh"
+                                   HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#263748"
+                                   Margin="0,12,0,4"/>
+                                <TextBlock Text="Rp 7.000"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#8492A1"/>
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0">
+                                    <Button Content="Edit"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Width="70" Background="#FF98DCED"/>
+                                    <Button Content="Hapus"
+                                        Style="{StaticResource ActionButton}"
+                                        Width="70" Background="#FFFF8585"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Tag="Minuman"
+                            Background="White"
+                            CornerRadius="13"
+                            Padding="16"
+                            Width="192"
+                            Margin="20,0,20,16"
+                            VerticalAlignment="Top"
+                            Height="250">
+                            <StackPanel>
+                                <Image Source="/foto/air_mineral.jfif"
+                                    Width="120"
+                                    Height="120"
+                                    Stretch="UniformToFill"/>
+                                <TextBlock Text="Air Mineral"
+                                   HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="#263748"
+                                   Margin="0,12,0,4"/>
+                                <TextBlock Text="Rp 5.000"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#8492A1"/>
+                                <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Center"
+                                    Margin="0,10,0,0">
+                                    <Button Content="Edit"
+                                        Style="{StaticResource ActionButton}"
+                                        Margin="0,0,8,0"
+                                        Width="70" Background="#FF98DCED"/>
+                                    <Button Content="Hapus"
+                                        Style="{StaticResource ActionButton}"
+                                        Width="70" Background="#FFFF8585"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                    </WrapPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</Window>
