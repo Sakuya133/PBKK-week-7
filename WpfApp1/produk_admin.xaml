@@ -98,14 +98,17 @@
                             Style="{StaticResource MenuButton}"/>
 
                     <Button Content="▤   Kategori"
-                            Style="{StaticResource MenuButton}"/>
+                            Style="{StaticResource MenuButton}"
+                            Click="Kategori_Click"/>
 
                     <Button Content="▧   Produk"
                             Style="{StaticResource MenuButton}"
-                            Background="#3B5872"/>
+                            Background="#3B5872"
+                            Click="Produk_Click"/>
 
                     <Button Content="▥   Penjualan"
-                            Style="{StaticResource MenuButton}"/>
+                            Style="{StaticResource MenuButton}"
+                            Click="Penjualan_Click"/>
                 </StackPanel>
 
                 <StackPanel DockPanel.Dock="Bottom"

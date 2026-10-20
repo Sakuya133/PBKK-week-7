@@ -63,4 +63,8 @@
     <Resource Include="foto\udang_rambutan.jfif" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\src\PosClient\PosClient.csproj" />
+  </ItemGroup>
+
 </Project>

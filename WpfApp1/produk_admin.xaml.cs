@@ -18,5 +18,19 @@ namespace WpfApp1
         {
             InitializeComponent();
         }
+        private void Kategori_Click(object sender, RoutedEventArgs e)
+        {
+            NavigationHelper.OpenKategori(this);
+        }
+
+        private void Produk_Click(object sender, RoutedEventArgs e)
+        {
+            // do nothing.
+        }
+
+        private void Penjualan_Click(object sender, RoutedEventArgs e)
+        {
+            NavigationHelper.OpenPenjualan(this);
+        }
     }
 }
