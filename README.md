@@ -122,7 +122,7 @@ sudo apt update
 sudo apt install libx11-6 libice6 libsm6 libfontconfig1 curl x11-utils
 ~~~
 
-`install-desktop.sh` memasang shortcut untuk user. Launcher mendukung path ber-spasi, memeriksa display tanpa menebak `DISPLAY` atau mengubah `XAUTHORITY`, dan menulis log di `$XDG_STATE_HOME/posdesktop/logs/posdesktop.log` atau `~/.local/state/posdesktop/logs/posdesktop.log`.
+`install-desktop.sh` memasang shortcut Mikogomi POS ke menu aplikasi dan Desktop user. Klik shortcut **Mikogomi POS** untuk membuka aplikasi; launcher mendukung path ber-spasi, memeriksa display tanpa menebak `DISPLAY` atau mengubah `XAUTHORITY`, dan menulis log di `$XDG_STATE_HOME/posdesktop/logs/posdesktop.log` atau `~/.local/state/posdesktop/logs/posdesktop.log`.
 
 API lokal opsional (SQL Server tetap harus aktif):
 
@@ -135,7 +135,7 @@ Launcher membatasi API development ke loopback, menunggu `/health`, hanya menghe
 
 ### Windows
 
-Target Windows x64. Ekstrak ZIP lalu buka `Launch-POS-Desktop.cmd` atau `PosDesktop.exe`. Launcher mendukung folder ber-spasi. Log: `%LOCALAPPDATA%\POS Desktop\Logs\`; konfigurasi: `%APPDATA%\posdesktop\pos-client.json`. Untuk API lokal, set `POS_START_LOCAL_API=1` dan `POS_CONNECTION_STRING` sebelum launcher; connection string dihapus dari environment sebelum aplikasi desktop dibuka.
+Target Windows x64. Ekstrak ZIP, jalankan `powershell -NoProfile -ExecutionPolicy Bypass -File .\Install-POS-Desktop-Shortcut.ps1` sekali, lalu klik shortcut **Mikogomi POS** di Desktop atau Start Menu. Shortcut membuka launcher tersembunyi tanpa jendela terminal. Bisa juga buka `Launch-POS-Desktop.cmd` atau `PosDesktop.exe` langsung. Launcher mendukung folder ber-spasi. Log: `%LOCALAPPDATA%\POS Desktop\Logs\`; konfigurasi: `%APPDATA%\posdesktop\pos-client.json`. Untuk API lokal, set `POS_START_LOCAL_API=1` dan `POS_CONNECTION_STRING` sebelum launcher; connection string dihapus dari environment sebelum aplikasi desktop dibuka.
 
 ## Troubleshooting dan batasan
 

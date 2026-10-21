@@ -19,13 +19,13 @@ cd POS-Desktop-linux-x64
 ./launch-posdesktop.sh
 ~~~
 
-Shortcut ada di `~/.local/share/applications/posdesktop.desktop`. Perintah langsung yang dijalankan launcher: `./launch-posdesktop.sh`. Launcher menangani path dengan spasi. Config API ada di `~/.config/posdesktop/pos-client.json` (atau `$XDG_CONFIG_HOME/posdesktop/pos-client.json`); log ada di `~/.local/state/posdesktop/logs/posdesktop.log`.
+Installer membuat shortcut **Mikogomi POS** di menu aplikasi dan Desktop. Klik shortcut untuk membuka aplikasi; launcher menangani path dengan spasi. Config API ada di `~/.config/posdesktop/pos-client.json` (atau `$XDG_CONFIG_HOME/posdesktop/pos-client.json`); log ada di `~/.local/state/posdesktop/logs/posdesktop.log`.
 
 Avalonia memakai X11/XWayland default. Jika `XOpenDisplay failed`, jalankan dari terminal sesi desktop yang sama. Wayland perlu XWayland dan `DISPLAY`; launcher tidak menebak DISPLAY maupun mengubah otorisasi `XAUTHORITY`. SSH/headless tanpa X11 forwarding yang diotorisasi tidak dapat membuka jendela.
 
 ## Windows
 
-Ekstrak `POS-Desktop-win-x64.zip` ke folder biasa. Jalankan `Launch-POS-Desktop.cmd`; executable utama juga tersedia sebagai `PosDesktop.exe`. Path dengan spasi didukung. Config API: `%APPDATA%\posdesktop\pos-client.json`; log: `%LOCALAPPDATA%\POS Desktop\Logs\posdesktop.log`.
+Ekstrak `POS-Desktop-win-x64.zip` ke folder biasa. Di PowerShell jalankan `powershell -NoProfile -ExecutionPolicy Bypass -File .\Install-POS-Desktop-Shortcut.ps1` sekali, lalu klik **Mikogomi POS** di Desktop atau Start Menu. Shortcut membuka launcher tanpa jendela terminal; `Launch-POS-Desktop.cmd` dan `PosDesktop.exe` juga tersedia untuk menjalankan langsung. Path dengan spasi didukung. Config API: `%APPDATA%\posdesktop\pos-client.json`; log: `%LOCALAPPDATA%\POS Desktop\Logs\posdesktop.log`.
 
 ## API dan database
 

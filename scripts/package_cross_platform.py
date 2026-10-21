@@ -53,6 +53,9 @@ def prepare_package(stage: Path, rid: str, display_name: str) -> Path:
 
     shutil.copytree(ROOT / "database", package / "Database")
     shutil.copytree(ROOT / "Configuration", package / "Configuration")
+    logo_assets = ROOT / "src/PosDesktop/Assets"
+    if logo_assets.is_dir():
+        shutil.copytree(logo_assets, package / "Assets")
     shutil.copy2(ROOT / "README.md", package / "README.md")
     shutil.copy2(ROOT / "distribution/CROSS-PLATFORM-README.md", package / "CROSS-PLATFORM-README.md")
 
@@ -67,6 +70,9 @@ def prepare_package(stage: Path, rid: str, display_name: str) -> Path:
     else:
         shutil.copy2(ROOT / "distribution/windows/Launch-POS-Desktop.cmd", package / "Launch-POS-Desktop.cmd")
         shutil.copy2(ROOT / "distribution/windows/Launch-POS-Desktop.ps1", package / "Launch-POS-Desktop.ps1")
+        shutil.copy2(ROOT / "distribution/windows/Launch-POS-Desktop.vbs", package / "Launch-POS-Desktop.vbs")
+        shutil.copy2(ROOT / "distribution/windows/Install-POS-Desktop-Shortcut.ps1",
+                     package / "Install-POS-Desktop-Shortcut.ps1")
     return package
 
 

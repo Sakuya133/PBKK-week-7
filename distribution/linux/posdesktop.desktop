@@ -1,8 +1,9 @@
 [Desktop Entry]
 Type=Application
-Name=POS Desktop
-Comment=Aplikasi kasir POS
+Name=Mikogomi POS
+Comment=Aplikasi kasir Mikogomi
 Exec=launch-posdesktop.sh
+Icon=applications-office
 Terminal=false
 Categories=Office;Finance;
 StartupWMClass=PosDesktop

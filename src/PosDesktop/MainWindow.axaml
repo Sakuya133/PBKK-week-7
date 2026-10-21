@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="PosDesktop.MainWindow"
-        Title="POS Desktop"
+        Title="Mikogomi POS"
         Width="1280" Height="820" MinWidth="980" MinHeight="650"
         Background="#F3F6FB">
   <Grid>
@@ -10,9 +10,9 @@
           ColumnDefinitions="*,460" Margin="36">
       <StackPanel Grid.Column="0" VerticalAlignment="Center" MaxWidth="600" Spacing="18" Margin="10,0,70,0">
         <Border Width="58" Height="58" CornerRadius="17" Background="#3157D5" HorizontalAlignment="Left">
-          <TextBlock Text="P" FontSize="32" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+          <TextBlock Text="M" FontSize="32" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
         </Border>
-        <TextBlock Text="POS Desktop" FontSize="42" FontWeight="Bold" Foreground="#152039" />
+        <TextBlock Text="Mikogomi POS" FontSize="42" FontWeight="Bold" Foreground="#152039" />
         <TextBlock Text="Kelola penjualan, produk, dan riwayat transaksi dalam satu aplikasi." FontSize="18" Foreground="#526079" TextWrapping="Wrap" />
         <Border Background="White" BorderBrush="#E0E7F0" BorderThickness="1" CornerRadius="14" Padding="18" Margin="0,16,0,0">
           <StackPanel Spacing="8">
@@ -46,10 +46,10 @@
         <Grid RowDefinitions="Auto,*,Auto">
           <StackPanel Orientation="Horizontal" Spacing="11" Margin="2,4,0,24">
             <Border Width="38" Height="38" CornerRadius="12" Background="#5375EB">
-              <TextBlock Text="P" FontSize="22" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+              <TextBlock Text="M" FontSize="22" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
             </Border>
             <StackPanel VerticalAlignment="Center" Spacing="1">
-              <TextBlock Text="POS Desktop" FontSize="16" FontWeight="Bold" Foreground="White" />
+              <TextBlock Text="Mikogomi" FontSize="16" FontWeight="Bold" Foreground="White" />
               <TextBlock Text="POINT OF SALE" FontSize="10" Foreground="#AAB7D4" />
             </StackPanel>
           </StackPanel>
