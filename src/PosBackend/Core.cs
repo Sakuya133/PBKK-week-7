@@ -142,6 +142,7 @@ public sealed class PosServices
     public IProductService Products { get; }
     public ITransactionService Transactions { get; }
     public IDashboardService Dashboard { get; }
+    public IKioskService Kiosk { get; }
 
     public PosServices(string connectionString) : this(connectionString, false) { }
 
@@ -174,5 +175,6 @@ public sealed class PosServices
         Products = new ProductService(db, session);
         Transactions = new TransactionService(db, session);
         Dashboard = new DashboardService(db, session);
+        Kiosk = new KioskService(db, session);
     }
 }

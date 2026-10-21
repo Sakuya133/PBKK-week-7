@@ -33,6 +33,12 @@ public sealed class MainViewModel : ObservableObject
     private DailySalesDto? _dailySales;
     private bool _showCheckoutConfirmation;
     private Guid? _pendingRequestId;
+    private bool _isGuestOrdering;
+    private bool _guestOrderComplete;
+    private string _guestName = "";
+    private string _guestOrderNumber = "";
+    private GuestOrderDto? _selectedGuestOrder;
+    private GuestOrderRequest? _pendingGuestOrderRequest;
 
     public MainViewModel(PosRemoteServices services, ClientConfiguration configuration)
     {
@@ -40,6 +46,10 @@ public sealed class MainViewModel : ObservableObject
         _configuration = configuration;
         _selectedPayment = PaymentChoices[0];
         LoginCommand = Command(LoginAsync);
+        BeginGuestOrderingCommand = Command(BeginGuestOrderingAsync);
+        ExitGuestOrderingCommand = new RelayCommand(_ => ExitGuestOrdering());
+        SubmitGuestOrderCommand = Command(SubmitGuestOrderAsync);
+        StartGuestOrderCommand = new RelayCommand(_ => StartAnotherGuestOrder());
         RetryApiCommand = Command(CheckApiAsync);
         LogoutCommand = Command(LogoutAsync);
         NavigateCommand = Command(NavigateAsync);
@@ -55,13 +65,18 @@ public sealed class MainViewModel : ObservableObject
         ConfirmCheckoutCommand = Command(ConfirmCheckoutAsync);
         CancelCheckoutCommand = new RelayCommand(_ => ShowCheckoutConfirmation = false);
         LoadTransactionDetailCommand = Command(LoadTransactionDetailAsync);
+        CompleteGuestOrderCommand = new AsyncRelayCommand(CompleteGuestOrderAsync,
+            _ => SelectedGuestOrder is not null && !IsBusy,
+            ex => ErrorMessage = $"Gagal mengonfirmasi pesanan: {ex.Message}");
         ApplyProductSearchCommand = new RelayCommand(_ => Changed(nameof(FilteredProducts)));
 
-        _busyCommands.AddRange([LoginCommand, RetryApiCommand, LogoutCommand, NavigateCommand, RefreshCommand,
-            SaveProductCommand, DeactivateProductCommand, ConfirmCheckoutCommand, LoadTransactionDetailCommand]);
+        _busyCommands.AddRange([LoginCommand, BeginGuestOrderingCommand, SubmitGuestOrderCommand, RetryApiCommand,
+            LogoutCommand, NavigateCommand, RefreshCommand, SaveProductCommand, DeactivateProductCommand,
+            ConfirmCheckoutCommand, LoadTransactionDetailCommand, CompleteGuestOrderCommand]);
         Cart.CollectionChanged += (_, _) => { Changed(nameof(CartTotalText)); Changed(nameof(CartCount)); Changed(nameof(CartIsEmpty)); BeginCheckoutCommand.RaiseCanExecuteChanged(); };
         Products.CollectionChanged += (_, _) => { Changed(nameof(FilteredProducts)); Changed(nameof(FilteredProductsEmpty)); };
         Transactions.CollectionChanged += (_, _) => Changed(nameof(TransactionsEmpty));
+        PendingGuestOrders.CollectionChanged += (_, _) => Changed(nameof(PendingGuestOrdersEmpty));
     }
 
     public ObservableCollection<ProductDto> Products { get; } = [];
@@ -69,11 +84,16 @@ public sealed class MainViewModel : ObservableObject
     public ObservableCollection<CustomerChoice> Customers { get; } = [];
     public ObservableCollection<CartLineViewModel> Cart { get; } = [];
     public ObservableCollection<TransactionSummaryDto> Transactions { get; } = [];
+    public ObservableCollection<GuestOrderDto> PendingGuestOrders { get; } = [];
     public IReadOnlyList<PaymentChoice> PaymentChoices { get; } =
     [new(PaymentMethod.Tunai, "Tunai"), new(PaymentMethod.Qris, "QRIS")];
     public ObservableCollection<NavigationItem> NavigationItems { get; } = [];
 
     public AsyncRelayCommand LoginCommand { get; }
+    public AsyncRelayCommand BeginGuestOrderingCommand { get; }
+    public RelayCommand ExitGuestOrderingCommand { get; }
+    public AsyncRelayCommand SubmitGuestOrderCommand { get; }
+    public RelayCommand StartGuestOrderCommand { get; }
     public AsyncRelayCommand RetryApiCommand { get; }
     public AsyncRelayCommand LogoutCommand { get; }
     public AsyncRelayCommand NavigateCommand { get; }
@@ -89,11 +109,17 @@ public sealed class MainViewModel : ObservableObject
     public AsyncRelayCommand ConfirmCheckoutCommand { get; }
     public RelayCommand CancelCheckoutCommand { get; }
     public AsyncRelayCommand LoadTransactionDetailCommand { get; }
+    public AsyncRelayCommand CompleteGuestOrderCommand { get; }
     public RelayCommand ApplyProductSearchCommand { get; }
 
     public UserDto? CurrentUser { get => _currentUser; private set { if (Set(ref _currentUser, value)) { Changed(nameof(IsLoggedIn)); Changed(nameof(IsLogin)); Changed(nameof(IsAdmin)); Changed(nameof(IsCashier)); Changed(nameof(IsCustomer)); Changed(nameof(CurrentUserSummary)); } } }
     public bool IsLoggedIn => CurrentUser is not null;
-    public bool IsLogin => CurrentUser is null;
+    public bool IsLogin => CurrentUser is null && !IsGuestOrdering;
+    public bool IsGuestOrdering { get => _isGuestOrdering; private set { if (Set(ref _isGuestOrdering, value)) { Changed(nameof(IsLogin)); Changed(nameof(IsGuestKioskPage)); Changed(nameof(IsGuestOrderComplete)); } } }
+    public bool IsGuestKioskPage => IsGuestOrdering && !IsGuestOrderComplete;
+    public bool IsGuestOrderComplete { get => _guestOrderComplete; private set { if (Set(ref _guestOrderComplete, value)) Changed(nameof(IsGuestKioskPage)); } }
+    public string GuestName { get => _guestName; set => Set(ref _guestName, value); }
+    public string GuestOrderNumber { get => _guestOrderNumber; private set => Set(ref _guestOrderNumber, value); }
     public bool IsAdmin => CurrentUser?.Role == UserRole.Admin;
     public bool IsCashier => CurrentUser?.Role == UserRole.Kasir;
     public bool IsCustomer => CurrentUser?.Role == UserRole.Pelanggan;
@@ -131,6 +157,7 @@ public sealed class MainViewModel : ObservableObject
     public bool SelectedProductIsNull => SelectedProduct is null;
     public CustomerChoice? SelectedCustomer { get => _selectedCustomer; set { if (Set(ref _selectedCustomer, value)) Changed(nameof(SelectedCustomerLabel)); } }
     public PaymentChoice SelectedPayment { get => _selectedPayment; set { if (Set(ref _selectedPayment, value)) Changed(nameof(SelectedPaymentLabel)); } }
+    public GuestOrderDto? SelectedGuestOrder { get => _selectedGuestOrder; set { if (Set(ref _selectedGuestOrder, value)) { Changed(nameof(SelectedGuestOrderTitle)); CompleteGuestOrderCommand.RaiseCanExecuteChanged(); } } }
     public TransactionSummaryDto? SelectedTransaction { get => _selectedTransaction; set { if (Set(ref _selectedTransaction, value)) { Changed(nameof(HasSelectedTransaction)); Changed(nameof(SelectedTransactionTitle)); } } }
     public TransactionDto? TransactionDetail { get => _transactionDetail; private set { if (Set(ref _transactionDetail, value)) { Changed(nameof(TransactionDetailIsNull)); Changed(nameof(TransactionCashierText)); Changed(nameof(TransactionCustomerText)); Changed(nameof(SelectedTransactionTitle)); } } }
     public bool TransactionDetailIsNull => TransactionDetail is null;
@@ -145,12 +172,15 @@ public sealed class MainViewModel : ObservableObject
     public int CartCount => Cart.Sum(line => line.Quantity);
     public bool CartIsEmpty => Cart.Count == 0;
     public bool TransactionsEmpty => Transactions.Count == 0;
+    public bool PendingGuestOrdersEmpty => PendingGuestOrders.Count == 0;
     public bool HasSelectedTransaction => SelectedTransaction is not null;
     public string SelectedTransactionTitle => TransactionDetail is null ? "Pilih transaksi untuk melihat detail" : $"{TransactionDetail.Number} · {TransactionDetail.CreatedAt.ToLocalTime():dd MMM yyyy HH:mm}";
     public string SelectedTransactionTotal => TransactionDetail?.Total.ToString("C0", CultureInfo.GetCultureInfo("id-ID")) ?? "—";
     public string SelectedTransactionPayment => TransactionDetail?.PaymentMethod.ToString() ?? "—";
     public string SelectedPaymentLabel => $"Metode: {SelectedPayment.Name}";
     public string SelectedCustomerLabel => $"Pelanggan: {SelectedCustomer?.Name ?? "Umum"}";
+    public string SelectedGuestOrderTitle => SelectedGuestOrder is null ? "Pilih pesanan dari antrean." :
+        $"{SelectedGuestOrder.Number} · {SelectedGuestOrder.GuestName} · {SelectedGuestOrder.PaymentMethod} · {SelectedGuestOrder.Total.ToString("C0", CultureInfo.GetCultureInfo("id-ID"))}";
     public IEnumerable<ProductDto> FilteredProducts => string.IsNullOrWhiteSpace(ProductSearch) ? Products :
         Products.Where(p => p.Name.Contains(ProductSearch, StringComparison.CurrentCultureIgnoreCase) || p.CategoryName.Contains(ProductSearch, StringComparison.CurrentCultureIgnoreCase));
     public bool FilteredProductsEmpty => !FilteredProducts.Any();
@@ -201,6 +231,86 @@ public sealed class MainViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 
+    private async Task BeginGuestOrderingAsync(object? _)
+    {
+        ClearUserState();
+        IsGuestOrdering = true;
+        ClearMessages();
+        IsBusy = true;
+        try
+        {
+            var result = await _services.Kiosk.GetCatalogAsync();
+            if (!result.Success)
+            {
+                ErrorMessage = result.Message;
+                if (result.Error == ErrorCode.ServiceUnavailable) MarkApiUnavailable();
+                return;
+            }
+            Products.Clear();
+            foreach (var product in result.Value ?? []) Products.Add(product);
+            ApiAvailable = true;
+            ApiStatus = $"Menu tersedia · {ApiUrl}";
+        }
+        finally { IsBusy = false; }
+    }
+
+    private void ExitGuestOrdering()
+    {
+        ClearUserState();
+        IsGuestOrdering = false;
+    }
+
+    private void StartAnotherGuestOrder()
+    {
+        Cart.Clear();
+        OnCartChanged();
+        GuestName = "";
+        GuestOrderNumber = "";
+        IsGuestOrderComplete = false;
+        SelectedProduct = null;
+        ClearMessages();
+    }
+
+    private async Task SubmitGuestOrderAsync(object? _)
+    {
+        ClearMessages();
+        if (string.IsNullOrWhiteSpace(GuestName) || GuestName.Trim().Length > 80)
+        { ErrorMessage = "Isi nama (maksimal 80 karakter)."; return; }
+        if (Cart.Count == 0) { ErrorMessage = "Pilih menu terlebih dahulu."; return; }
+        if (SelectedPayment is null) { ErrorMessage = "Pilih metode pembayaran."; return; }
+        var items = Cart.Select(line => new CheckoutItem(line.ProductId, line.Quantity)).ToArray();
+        if (_pendingGuestOrderRequest is not null &&
+            (_pendingGuestOrderRequest.GuestName != GuestName.Trim() ||
+             _pendingGuestOrderRequest.PaymentMethod != SelectedPayment.Value ||
+             !_pendingGuestOrderRequest.Items.SequenceEqual(items)))
+        {
+            ErrorMessage = "Pesanan sebelumnya belum terkonfirmasi. Kembalikan nama, menu, dan pembayaran ke data yang sama untuk mencoba lagi.";
+            return;
+        }
+        var request = _pendingGuestOrderRequest ??= new GuestOrderRequest(GuestName.Trim(), SelectedPayment.Value,
+            items, Guid.NewGuid());
+        IsBusy = true;
+        try
+        {
+            var result = await _services.Kiosk.PlaceOrderAsync(request);
+            if (!result.Success || result.Value is null)
+            {
+                ErrorMessage = result.Message;
+                if (result.Error == ErrorCode.Validation) _pendingGuestOrderRequest = null;
+                if (result.Error == ErrorCode.ServiceUnavailable) MarkApiUnavailable();
+                return;
+            }
+            GuestName = result.Value.GuestName;
+            GuestOrderNumber = result.Value.Number;
+            IsGuestOrderComplete = true;
+            Cart.Clear();
+            _pendingGuestOrderRequest = null;
+            OnCartChanged();
+            SuccessMessage = "Pesanan sudah masuk antrean. Tunjukkan nomor pesanan di kasir untuk membayar.";
+        }
+        finally { IsBusy = false; }
+    }
+
     private async Task LogoutAsync(object? _)
     {
         ClearMessages();
@@ -247,7 +357,8 @@ public sealed class MainViewModel : ObservableObject
 
     private async Task LoadProductsAsync()
     {
-        var result = IsAdmin ? await _services.Products.GetAllAsync() : await _services.Products.GetCatalogAsync();
+        var result = IsGuestOrdering ? await _services.Kiosk.GetCatalogAsync()
+            : IsAdmin ? await _services.Products.GetAllAsync() : await _services.Products.GetCatalogAsync();
         if (!result.Success) { ErrorMessage = result.Message; return; }
         Products.Clear();
         foreach (var product in result.Value ?? []) Products.Add(product);
@@ -274,6 +385,11 @@ public sealed class MainViewModel : ObservableObject
         Customers.Add(new CustomerChoice(null, "Umum"));
         foreach (var customer in options.Value ?? []) Customers.Add(new CustomerChoice(customer.Id, customer.FullName));
         SelectedCustomer = Customers.FirstOrDefault();
+        var pending = await _services.Kiosk.GetPendingOrdersAsync();
+        if (!pending.Success) { ErrorMessage = pending.Message; return; }
+        PendingGuestOrders.Clear();
+        foreach (var order in pending.Value ?? []) PendingGuestOrders.Add(order);
+        SelectedGuestOrder = null;
     }
 
     private async Task LoadHistoryAsync()
@@ -346,16 +462,18 @@ public sealed class MainViewModel : ObservableObject
 
     private void AddSelectedProduct()
     {
-        if (SelectedProduct is null || !SelectedProduct.IsActive || !IsCashier) return;
+        if (SelectedProduct is null || !SelectedProduct.IsActive || (!IsCashier && !IsGuestOrdering)) return;
         var existing = Cart.FirstOrDefault(line => line.ProductId == SelectedProduct.Id);
-        if (existing is not null) existing.ApplyStep(1);
-        else Cart.Add(new CartLineViewModel(SelectedProduct.Id, SelectedProduct.Name, SelectedProduct.Price, ChangeQuantity, RemoveCartLine));
+        if (existing is not null) { ChangeQuantity(existing, 1); return; }
+        Cart.Add(new CartLineViewModel(SelectedProduct.Id, SelectedProduct.Name, SelectedProduct.Price, ChangeQuantity, RemoveCartLine));
         OnCartChanged();
     }
 
     private void ChangeQuantity(CartLineViewModel? line, int delta)
     {
         if (line is null || !Cart.Contains(line)) return;
+        if (IsGuestOrdering && delta > 0 && line.Quantity >= 100)
+        { ErrorMessage = "Maksimal 100 untuk satu menu."; return; }
         if (delta < 0 && line.Quantity == 1) { Cart.Remove(line); OnCartChanged(); return; }
         line.ApplyStep(delta);
         OnCartChanged();
@@ -410,6 +528,34 @@ public sealed class MainViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 
+    private async Task CompleteGuestOrderAsync(object? _)
+    {
+        ClearMessages();
+        if (SelectedGuestOrder is null) { ErrorMessage = "Pilih pesanan kiosk terlebih dahulu."; return; }
+        IsBusy = true;
+        try
+        {
+            var result = await _services.Kiosk.CompleteOrderAsync(SelectedGuestOrder.Id);
+            if (!result.Success || result.Value is null)
+            {
+                ErrorMessage = result.Message;
+                if (result.Error == ErrorCode.ServiceUnavailable) MarkApiUnavailable();
+                return;
+            }
+            SuccessMessage = $"Pembayaran diterima · transaksi {result.Value.Number} tersimpan.";
+            await LoadHistoryAsync();
+            var pending = await _services.Kiosk.GetPendingOrdersAsync();
+            if (pending.Success)
+            {
+                PendingGuestOrders.Clear();
+                foreach (var order in pending.Value ?? []) PendingGuestOrders.Add(order);
+            }
+            SelectedGuestOrder = null;
+            if (IsAdmin) await LoadDashboardAsync();
+        }
+        finally { IsBusy = false; }
+    }
+
     private void ConfigureNavigation()
     {
         NavigationItems.Clear();
@@ -449,16 +595,24 @@ public sealed class MainViewModel : ObservableObject
 
     private void ClearUserState()
     {
+        IsGuestOrdering = false;
+        IsGuestOrderComplete = false;
+        GuestName = "";
+        GuestOrderNumber = "";
+        ProductSearch = "";
+        _pendingGuestOrderRequest = null;
         Cart.Clear();
         Products.Clear();
         Categories.Clear();
         Customers.Clear();
         Transactions.Clear();
+        PendingGuestOrders.Clear();
         DailySales = null;
         TransactionDetail = null;
         SelectedTransaction = null;
         SelectedProduct = null;
         SelectedCustomer = null;
+        SelectedGuestOrder = null;
         NavigationItems.Clear();
         ResetProductEditor();
         CurrentPage = "Dashboard";

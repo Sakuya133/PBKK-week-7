@@ -2,6 +2,8 @@
 
 Paket ini menargetkan **Windows x64** atau **Ubuntu/Linux x64** dan berisi aplikasi Mikogomi POS Avalonia self-contained, logo Mikogomi, launcher, setup tool, SQL scripts, serta API lokal opsional. SQL Server tidak disertakan dan harus tersedia sebagai service lokal/jaringan.
 
+Pelanggan dapat membuat pesanan kiosk tanpa login; kasir harus login untuk melihat antrean dan mengonfirmasi pembayaran.
+
 ## Ubuntu/Linux
 
 Prasyarat sistem: sesi desktop X11 atau XWayland dan paket `libx11-6`, `libice6`, `libsm6`, `libfontconfig1`. `curl` diperlukan untuk API lokal opsional; `x11-utils` memberi pengecekan display awal:

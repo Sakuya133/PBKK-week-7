@@ -8,6 +8,8 @@ GRANT SELECT ON dbo.Categories TO pos_api_role;
 GRANT SELECT, INSERT, UPDATE ON dbo.Products TO pos_api_role;
 GRANT SELECT, INSERT ON dbo.Transactions TO pos_api_role;
 GRANT SELECT, INSERT ON dbo.TransactionItems TO pos_api_role;
+GRANT SELECT, INSERT, UPDATE ON dbo.GuestOrders TO pos_api_role;
+GRANT SELECT, INSERT ON dbo.GuestOrderItems TO pos_api_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON dbo.AuthSessions TO pos_api_role;
 IF DATABASE_PRINCIPAL_ID(N'pos_app_role') IS NOT NULL
 BEGIN
@@ -17,5 +19,7 @@ BEGIN
     REVOKE SELECT, INSERT, UPDATE ON dbo.Products FROM pos_app_role;
     REVOKE SELECT, INSERT ON dbo.Transactions FROM pos_app_role;
     REVOKE SELECT, INSERT ON dbo.TransactionItems FROM pos_app_role;
+    REVOKE SELECT, INSERT, UPDATE ON dbo.GuestOrders FROM pos_app_role;
+    REVOKE SELECT, INSERT ON dbo.GuestOrderItems FROM pos_app_role;
 END;
 GO

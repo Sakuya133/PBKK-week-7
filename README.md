@@ -6,16 +6,18 @@ Jendela login tetap terbuka saat API tidak tersedia dan memiliki tombol **Coba h
 
 ## Fitur dan hak akses
 
-| Fitur | Admin | Kasir | Pelanggan |
-|---|:---:|:---:|:---:|
-| Login/logout | ✓ | ✓ | ✓ |
-| Katalog produk aktif | ✓ | ✓ | ✓ |
-| Tambah, edit, nonaktifkan produk | ✓ | — | — |
-| Omzet, jumlah transaksi, top 5 produk hari ini | ✓ | — | — |
-| Checkout; pelanggan terdaftar atau Umum; Tunai/QRIS | — | ✓ | — |
-| Riwayat dan detail transaksi | Semua | Transaksi sendiri | Pembelian sendiri |
+| Fitur | Admin | Kasir | Pelanggan | Tamu |
+|---|:---:|:---:|:---:|:---:|
+| Login/logout | ✓ | ✓ | ✓ | — |
+| Lihat katalog aktif | ✓ | ✓ | ✓ | ✓ |
+| Pesan menu dan isi nama | — | — | — | ✓ |
+| Konfirmasi pembayaran pesanan tamu | — | ✓ | — | — |
+| Kelola produk | ✓ | — | — | — |
+| Dashboard penjualan | ✓ | — | — | — |
+| Checkout di kasir | — | ✓ | — | — |
+| Riwayat transaksi | Semua | Transaksi sendiri | Pembelian sendiri | — |
 
-Kasir mengonfirmasi pembayaran secara manual sebelum checkout dikirim. API membaca ulang harga/status produk dari database; checkout menyimpan header dan item secara atomik, memakai RequestId untuk mencegah duplikasi, dan menyimpan snapshot nama/harga. Pembelian Umum tidak dikaitkan ke akun pelanggan.
+Tamu dapat memesan tanpa akun, mengisi nama, mengatur jumlah, dan memilih Tunai/QRIS. Pesanan disimpan sebagai menunggu pembayaran. Kasir mengonfirmasi pembayaran di antrean kiosk; barulah pesanan menjadi transaksi penjualan. API membaca harga/status produk dari database dan menyimpan snapshot nama/harga secara atomik.
 
 ## Teknologi dan struktur
 
@@ -36,7 +38,7 @@ Kasir mengonfirmasi pembayaran secara manual sebelum checkout dikirim. API memba
 | `tests` | Tes client/backend dan API smoke test |
 | `scripts/package_cross_platform.py` | Publish dan arsip paket Linux/Windows |
 
-Alur UI: XAML bind ke MainViewModel → ViewModel memanggil PosClient → PosClient mengirim request ke PosServer → backend memeriksa izin/validasi dan mengakses SQL Server.
+Alur UI: XAML bind ke MainViewModel → ViewModel memanggil PosClient → PosClient mengirim request ke PosServer → backend memeriksa izin/validasi dan mengakses SQL Server. Kiosk tamu memakai katalog dan endpoint pesanan publik terbatas; antrean dan konfirmasi pembayaran memerlukan login kasir.
 
 ## Konfigurasi client
 
@@ -58,6 +60,7 @@ dotnet run --project tools/PosSetup -- --demo
 ~~~
 
 Setup idempotent dan tidak menghapus transaksi/pengguna. Untuk production gunakan sertifikat tepercaya (`TrustServerCertificate=false`) dan role runtime minimum dari `database/permissions.sql`.
+Schema menambahkan `GuestOrders` dan `GuestOrderItems`; pesanan tamu baru masuk ke penjualan setelah kasir mengonfirmasi pembayaran.
 
 Akun demo khusus development: Admin `admin` / `Admin123!`; Kasir `kasir` / `Kasir123!`; Pelanggan `pelanggan` / `Pelanggan123!`; Pelanggan kedua `pelanggan2` / `Pelanggan234!`. Jangan jalankan seed demo di production.
 
@@ -91,27 +94,31 @@ python3 scripts/package_cross_platform.py
 
 Output self-contained: `artifacts/POS-Desktop-linux-x64/`, `artifacts/POS-Desktop-linux-x64.tar.gz`, `artifacts/POS-Desktop-win-x64/`, dan `artifacts/POS-Desktop-win-x64.zip`. Paket berisi client, dependency Avalonia, launcher, panduan, skrip SQL, API lokal opsional, dan tool setup. SQL Server tetap kebutuhan terpisah. Cross-publish Windows dari Linux tidak membuktikan runtime Windows.
 
-### Unduh paket terbaru
+### Download
 
-Paket terbaru di [GitHub Releases](https://github.com/Sakuya133/PBKK-week-7/releases). Ubuntu/Linux:
+Unduh paket terbaru dari [GitHub Releases](https://github.com/Sakuya133/PBKK-week-7/releases/latest).
+
+**Ubuntu:**
 
 ~~~bash
-curl -fL -o POS-Desktop-linux-x64.tar.gz https://github.com/Sakuya133/PBKK-week-7/releases/latest/download/POS-Desktop-linux-x64.tar.gz
+curl -fLO https://github.com/Sakuya133/PBKK-week-7/releases/latest/download/POS-Desktop-linux-x64.tar.gz
 tar -xzf POS-Desktop-linux-x64.tar.gz
 cd POS-Desktop-linux-x64
 ./install-desktop.sh
-./launch-posdesktop.sh
 ~~~
 
-Windows PowerShell:
+Klik **Mikogomi POS** dari menu aplikasi, atau jalankan `./launch-posdesktop.sh`.
+
+**Windows PowerShell:**
 
 ~~~powershell
 Invoke-WebRequest https://github.com/Sakuya133/PBKK-week-7/releases/latest/download/POS-Desktop-win-x64.zip -OutFile POS-Desktop-win-x64.zip
 Expand-Archive .\POS-Desktop-win-x64.zip -DestinationPath .\POS-Desktop-win-x64 -Force
-& .\POS-Desktop-win-x64\Launch-POS-Desktop.cmd
+cd .\POS-Desktop-win-x64
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Install-POS-Desktop-Shortcut.ps1
 ~~~
 
-Download memakai asset bernama sama pada GitHub Release terbaru. Ekstrak dahulu; jangan jalankan executable dari dalam ZIP.
+Klik shortcut **Mikogomi POS** di Desktop atau Start Menu.
 
 ### Ubuntu/Linux
 
@@ -144,12 +151,10 @@ Target Windows x64. Ekstrak ZIP, jalankan `powershell -NoProfile -ExecutionPolic
 - `DatabaseUnavailable`: periksa SQL Server, `POS_CONNECTION_STRING` pada host API, izin runtime, dan sertifikat SQL.
 - SQL Server tidak disertakan di paket. Siapkan service SQL Server lokal atau gunakan server jaringan.
 
-## Hasil verifikasi run ini
+## Status verifikasi
 
-- `dotnet build PosDesktop.slnx -c Release -p:EnableWindowsTargeting=true`: berhasil, 0 warning dan 0 error.
-- Tes client: seluruh 9 pemeriksaan lulus, termasuk health check, login/logout, token, error role, dan koneksi gagal. Tes backend non-SQL lulus. Tes SQL integration dilewati karena `POS_TEST_CONNECTION_STRING` tidak tersedia dan SQL Server lokal/container tidak tersedia.
-- Paket Linux dijalankan hasil ekstraksi dari working directory berbeda dan folder ber-spasi. Jendela login tampil di XWayland aktif dan ditutup lewat WM_DELETE_WINDOW dengan exit code 0. API paket `/health` mengembalikan HTTP 200; login terhadap SQL yang sengaja tidak tersedia mengembalikan HTTP 503. Connection string tidak diwariskan ke proses desktop dan API anak berhenti saat launcher ditutup.
-- Launcher headless/SSH mengeluarkan instruksi display yang jelas dan exit code 2, tanpa crash.
-- TAR/ZIP berhasil dibuat; executable Linux memiliki permission eksekusi dan arsip Windows lolos pemeriksaan CRC. Windows `PosDesktop.exe` cross-publish berhasil dan sempat membuka jendela di Wine dengan prefix sementara. Ini bukan uji native Windows; uji GUI pada komputer Windows tetap diperlukan.
-
-Integrasi transaksi dengan SQL Server sungguhan belum diverifikasi. Karena itu checkout, dashboard berbasis transaksi, dan isolasi riwayat telah tercakup oleh service/test yang ada tetapi bukan hasil uji SQL langsung pada run ini. Lihat `distribution/CROSS-PLATFORM-README.md` untuk petunjuk ringkas yang ikut di tiap paket.
+- Release build berhasil tanpa warning atau error. Tes client lulus; tes backend validasi/akses lulus.
+- API route smoke lulus: status API `200`, antrean kasir tanpa login `401`, input pesanan tidak valid `400`. Katalog publik mencapai database, tetapi mengembalikan `503` karena SQL tidak tersedia.
+- Paket self-contained Windows x64 dan Ubuntu/Linux x64 berhasil dibuat; executable, launcher, skrip database, README, dan arsip diperiksa.
+- Launcher Linux menampilkan petunjuk display dan keluar dengan kode `2` di shell headless. GUI paket baru belum diuji karena sesi ini tidak memiliki display/Xvfb. Windows dibuat lewat cross-publish; native Windows belum diuji.
+- Tes integrasi SQL dilewati karena `POS_TEST_CONNECTION_STRING` belum diatur. Simpan pesanan, konfirmasi kasir, dan perubahan dashboard perlu diuji dengan SQL Server pengembangan.

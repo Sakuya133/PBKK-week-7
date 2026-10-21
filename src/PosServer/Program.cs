@@ -23,6 +23,9 @@ builder.Services.AddRateLimiter(options =>
     options.AddPolicy("login", context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions
         { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+    options.AddPolicy("guest-orders", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions
+        { PermitLimit = 8, Window = TimeSpan.FromMinutes(5), QueueLimit = 0 }));
 });
 var app = builder.Build();
 app.UseExceptionHandler(handler => handler.Run(async context =>
@@ -54,7 +57,9 @@ app.Use(async (context, next) =>
         await ApiReply.Fail(context, ErrorCode.Validation, "Permintaan terlalu besar.");
         return;
     }
-    if (context.Request.Path.StartsWithSegments("/api/auth/login") || context.Request.Path == "/health")
+    var publicKioskRequest = (context.Request.Path == "/api/kiosk/catalog" && HttpMethods.IsGet(context.Request.Method))
+        || (context.Request.Path == "/api/kiosk/orders" && HttpMethods.IsPost(context.Request.Method));
+    if (context.Request.Path.StartsWithSegments("/api/auth/login") || context.Request.Path == "/health" || publicKioskRequest)
     {
         await next();
         return;
@@ -105,6 +110,12 @@ app.MapPost("/api/auth/logout", async (HttpContext ctx, SessionStore sessions, C
 });
 
 app.MapGet("/api/products/catalog", (HttpContext ctx, CancellationToken ct) => Call(ctx, s => s.Products.GetCatalogAsync(ct)));
+app.MapGet("/api/kiosk/catalog", async (CancellationToken ct) =>
+    ApiReply.From(await NewServices().Kiosk.GetCatalogAsync(ct)));
+app.MapPost("/api/kiosk/orders", async (GuestOrderRequest input, CancellationToken ct) =>
+    ApiReply.From(await NewServices().Kiosk.PlaceOrderAsync(input, ct))).RequireRateLimiting("guest-orders");
+app.MapGet("/api/kiosk/orders/pending", (HttpContext ctx, CancellationToken ct) => Call(ctx, s => s.Kiosk.GetPendingOrdersAsync(ct)));
+app.MapPost("/api/kiosk/orders/{id:long}/complete", (HttpContext ctx, long id, CancellationToken ct) => Call(ctx, s => s.Kiosk.CompleteOrderAsync(id, ct)));
 app.MapGet("/api/products/categories", (HttpContext ctx, CancellationToken ct) => Call(ctx, s => s.Products.GetCategoriesAsync(ct)));
 app.MapGet("/api/products", (HttpContext ctx, CancellationToken ct) => Call(ctx, s => s.Products.GetAllAsync(ct)));
 app.MapPost("/api/products", (HttpContext ctx, ProductInput input, CancellationToken ct) => Call(ctx, s => s.Products.CreateAsync(input, ct)));

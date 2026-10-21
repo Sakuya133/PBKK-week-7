@@ -108,7 +108,7 @@ internal sealed class TransactionService(Database db, Session session) : ITransa
                 ErrorCode.Validation, "Halaman transaksi tidak valid.");
             await using var connection = await db.OpenAsync(cancellationToken);
             await using var command = new SqlCommand(
-                "SELECT t.Id,t.Number,t.CreatedAt,c.FullName,p.FullName,t.PaymentMethod,t.Total " +
+                "SELECT t.Id,t.Number,t.CreatedAt,c.FullName,COALESCE(p.FullName,t.GuestName),t.PaymentMethod,t.Total " +
                 "FROM dbo.Transactions t JOIN dbo.Users c ON c.Id=t.CashierId " +
                 "LEFT JOIN dbo.Users p ON p.Id=t.CustomerId " +
                 "WHERE (@role='Admin' OR (@role='Kasir' AND t.CashierId=@user) " +
@@ -135,7 +135,7 @@ internal sealed class TransactionService(Database db, Session session) : ITransa
             Guard.That(id > 0, ErrorCode.Validation, "Id transaksi tidak valid.");
             await using var connection = await db.OpenAsync(cancellationToken);
             await using var command = new SqlCommand(
-                "SELECT t.Id,t.Number,t.CashierId,c.FullName,t.CustomerId,p.FullName,t.CreatedAt,t.PaymentMethod,t.Total " +
+                "SELECT t.Id,t.Number,t.CashierId,c.FullName,t.CustomerId,COALESCE(p.FullName,t.GuestName),t.CreatedAt,t.PaymentMethod,t.Total " +
                 "FROM dbo.Transactions t JOIN dbo.Users c ON c.Id=t.CashierId " +
                 "LEFT JOIN dbo.Users p ON p.Id=t.CustomerId WHERE t.Id=@id AND " +
                 "(@role='Admin' OR (@role='Kasir' AND t.CashierId=@user) " +

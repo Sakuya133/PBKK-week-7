@@ -7,7 +7,7 @@ using PosBackend;
 namespace PosClient;
 
 /// <summary>Client HTTP untuk ViewModel desktop. Simpan instance ini selama satu sesi aplikasi.</summary>
-public sealed class PosRemoteServices : IAuthService, IProductService, ITransactionService, IDashboardService, IDisposable
+public sealed class PosRemoteServices : IAuthService, IProductService, ITransactionService, IDashboardService, IKioskService, IDisposable
 {
     private readonly HttpClient _http;
     private readonly bool _ownsClient;
@@ -21,6 +21,7 @@ public sealed class PosRemoteServices : IAuthService, IProductService, ITransact
     public IProductService Products => this;
     public ITransactionService Transactions => this;
     public IDashboardService Dashboard => this;
+    public IKioskService Kiosk => this;
     public UserDto? CurrentUser { get { lock (_gate) return _user; } }
 
     /// <summary>Checks API reachability without requiring a database-backed login.</summary>
@@ -109,6 +110,15 @@ public sealed class PosRemoteServices : IAuthService, IProductService, ITransact
         SendAsync<TransactionDto>(HttpMethod.Get, $"api/transactions/{id}", null, true, ct);
     Task<ServiceResult<DailySalesDto>> IDashboardService.GetTodayAsync(CancellationToken ct) =>
         SendAsync<DailySalesDto>(HttpMethod.Get, "api/dashboard/today", null, true, ct);
+
+    Task<ServiceResult<IReadOnlyList<ProductDto>>> IKioskService.GetCatalogAsync(CancellationToken ct) =>
+        SendAsync<IReadOnlyList<ProductDto>>(HttpMethod.Get, "api/kiosk/catalog", null, false, ct);
+    Task<ServiceResult<GuestOrderDto>> IKioskService.PlaceOrderAsync(GuestOrderRequest request, CancellationToken ct) =>
+        SendAsync<GuestOrderDto>(HttpMethod.Post, "api/kiosk/orders", request, false, ct);
+    Task<ServiceResult<IReadOnlyList<GuestOrderDto>>> IKioskService.GetPendingOrdersAsync(CancellationToken ct) =>
+        SendAsync<IReadOnlyList<GuestOrderDto>>(HttpMethod.Get, "api/kiosk/orders/pending", null, true, ct);
+    Task<ServiceResult<TransactionDto>> IKioskService.CompleteOrderAsync(long id, CancellationToken ct) =>
+        SendAsync<TransactionDto>(HttpMethod.Post, $"api/kiosk/orders/{id}/complete", null, true, ct);
 
     private async Task<ServiceResult<T>> SendAsync<T>(HttpMethod method, string path, object? body, bool authenticated, CancellationToken ct)
     {

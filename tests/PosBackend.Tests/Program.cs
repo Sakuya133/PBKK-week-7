@@ -54,6 +54,13 @@ try
     Check((await withoutLogin.Products.GetCatalogAsync()).Error == ErrorCode.Unauthorized, "katalog memerlukan login");
     Check((await withoutLogin.Transactions.GetTransactionsAsync()).Error == ErrorCode.Unauthorized, "riwayat memerlukan login");
     Check((await withoutLogin.Dashboard.GetTodayAsync()).Error == ErrorCode.Unauthorized, "dashboard memerlukan login");
+    Check((await withoutLogin.Kiosk.GetPendingOrdersAsync()).Error == ErrorCode.Unauthorized,
+        "antrean pesanan kiosk memerlukan login kasir");
+    Check((await withoutLogin.Kiosk.PlaceOrderAsync(new("", PaymentMethod.Tunai, [], Guid.NewGuid()))).Error == ErrorCode.Validation,
+        "pesanan tamu tanpa nama atau item ditolak sebelum akses database");
+    Check((await withoutLogin.Kiosk.PlaceOrderAsync(new("Budi", PaymentMethod.Tunai,
+        [new CheckoutItem(1, 101)], Guid.NewGuid()))).Error == ErrorCode.Validation,
+        "kuantitas pesanan tamu dibatasi sebelum akses database");
 
     var configured = Environment.GetEnvironmentVariable("POS_TEST_CONNECTION_STRING");
     if (string.IsNullOrWhiteSpace(configured))
@@ -96,11 +103,19 @@ try
             "HAS_PERMS_BY_NAME('dbo.Users','OBJECT','INSERT'), " +
             "HAS_PERMS_BY_NAME('dbo.Users','OBJECT','DELETE'), " +
             "HAS_PERMS_BY_NAME('dbo.Products','OBJECT','UPDATE'), " +
-            "HAS_PERMS_BY_NAME('dbo.AuthSessions','OBJECT','INSERT'); REVERT", probeConnection);
+            "HAS_PERMS_BY_NAME('dbo.AuthSessions','OBJECT','INSERT'), " +
+            "HAS_PERMS_BY_NAME('dbo.GuestOrders','OBJECT','SELECT'), " +
+            "HAS_PERMS_BY_NAME('dbo.GuestOrders','OBJECT','INSERT'), " +
+            "HAS_PERMS_BY_NAME('dbo.GuestOrders','OBJECT','UPDATE'), " +
+            "HAS_PERMS_BY_NAME('dbo.GuestOrderItems','OBJECT','SELECT'), " +
+            "HAS_PERMS_BY_NAME('dbo.GuestOrderItems','OBJECT','INSERT'); REVERT", probeConnection);
         await using var permissionReader = await checkRole.ExecuteReaderAsync();
         var valid = await permissionReader.ReadAsync() && permissionReader.GetInt32(0) == 1
             && permissionReader.GetInt32(1) == 0 && permissionReader.GetInt32(2) == 0
-            && permissionReader.GetInt32(3) == 1 && permissionReader.GetInt32(4) == 1;
+            && permissionReader.GetInt32(3) == 1 && permissionReader.GetInt32(4) == 1
+            && permissionReader.GetInt32(5) == 1 && permissionReader.GetInt32(6) == 1
+            && permissionReader.GetInt32(7) == 1 && permissionReader.GetInt32(8) == 1
+            && permissionReader.GetInt32(9) == 1;
         while (await permissionReader.NextResultAsync()) { }
         Check(valid, "role SQL runtime hanya memiliki izin yang diperlukan");
     }
@@ -181,6 +196,21 @@ try
     var general = Value(await services.Transactions.CheckoutAsync(new(null, PaymentMethod.Qris,
         [new CheckoutItem(productId, 1)], Guid.NewGuid())), "checkout Umum");
     Check(general.CustomerId is null, "pembelian Umum tanpa pemilik pelanggan");
+    var guestRequest = new GuestOrderRequest("Rani", PaymentMethod.Qris,
+        [new CheckoutItem(productId, 2)], Guid.NewGuid());
+    var anonymousKiosk = PosServices.CreateForDevelopment(builder.ConnectionString);
+    var guestOrder = Value(await anonymousKiosk.Kiosk.PlaceOrderAsync(guestRequest), "pesanan kiosk tanpa login");
+    var retriedGuestOrder = Value(await anonymousKiosk.Kiosk.PlaceOrderAsync(guestRequest), "retry pesanan kiosk");
+    Check(guestOrder.Id == retriedGuestOrder.Id && guestOrder.GuestName == "Rani" && guestOrder.Total == 20000m,
+        "RequestId membuat pesanan kiosk idempoten dan memakai harga database");
+    var pendingOrders = Value(await services.Kiosk.GetPendingOrdersAsync(), "antrean kasir");
+    Check(pendingOrders.Any(x => x.Id == guestOrder.Id && x.Items[0].Quantity == 2),
+        "kasir melihat pesanan tamu beserta itemnya");
+    var guestSale = Value(await services.Kiosk.CompleteOrderAsync(guestOrder.Id), "konfirmasi pembayaran pesanan tamu");
+    Check(guestSale.CustomerId is null && guestSale.CustomerName == "Rani" && guestSale.Total == 20000m,
+        "konfirmasi kasir membuat transaksi dengan nama tamu");
+    Check((await services.Kiosk.CompleteOrderAsync(guestOrder.Id)).Error == ErrorCode.Conflict,
+        "pesanan tamu yang sudah dibayar tidak dapat diproses dua kali");
     Check((await services.Transactions.CheckoutAsync(new(customerOne, PaymentMethod.Tunai,
         [new CheckoutItem(productId, unitsForTest - 1)], purchaseRequestId))).Error == ErrorCode.Conflict,
         "retry dengan RequestId sama tidak membuat transaksi kedua");
@@ -192,12 +222,12 @@ try
         "riwayat transaksi dapat dipaginasi");
     Value(await services.Auth.LoginAsync(twoName, "Test123!"), "login pelanggan kedua");
     var otherList = Value(await services.Transactions.GetTransactionsAsync(), "riwayat pelanggan kedua");
-    Check(otherList.All(x => x.Id != purchase.Id && x.Id != general.Id), "pelanggan lain tidak melihat transaksi");
+    Check(otherList.All(x => x.Id != purchase.Id && x.Id != general.Id && x.Id != guestSale.Id), "pelanggan lain tidak melihat transaksi");
     Check((await services.Transactions.GetDetailAsync(purchase.Id)).Error == ErrorCode.NotFound,
         "pelanggan lain tidak membaca detail transaksi");
     Value(await services.Auth.LoginAsync(oneName, "Test123!"), "login pelanggan pertama");
     var ownList = Value(await services.Transactions.GetTransactionsAsync(), "riwayat pelanggan pertama");
-    Check(ownList.Any(x => x.Id == purchase.Id) && ownList.All(x => x.Id != general.Id),
+    Check(ownList.Any(x => x.Id == purchase.Id) && ownList.All(x => x.Id != general.Id && x.Id != guestSale.Id),
         "pelanggan hanya melihat pembeliannya sendiri");
     Value(await services.Auth.LoginAsync(adminName, "Test123!"), "login admin ulang");
     Value(await services.Products.UpdateAsync(productId, new("Updated product", categoryId, 15000m)), "ubah harga produk");
@@ -205,9 +235,12 @@ try
     Check(old.Items[0].UnitPrice == 10000m && old.Total == (unitsForTest - 1) * 10000m
         && old.Items[0].ProductName.StartsWith("Test product"),
         "snapshot harga dan nama tetap tersimpan");
+    var oldGuest = Value(await services.Transactions.GetDetailAsync(guestSale.Id), "detail transaksi tamu");
+    Check(oldGuest.CustomerName == "Rani" && oldGuest.Items[0].UnitPrice == 10000m && oldGuest.Total == 20000m,
+        "nama dan snapshot harga pesanan tamu tersimpan setelah produk berubah");
     var after = Value(await services.Dashboard.GetTodayAsync(), "dashboard setelah transaksi");
-    Check(after.Revenue == before.Revenue + unitsForTest * 10000m && after.TransactionCount == before.TransactionCount + 2
-        && after.TopProducts.Any(x => x.ProductId == productId && x.UnitsSold == unitsForTest),
+    Check(after.Revenue == before.Revenue + (unitsForTest + 2) * 10000m && after.TransactionCount == before.TransactionCount + 3
+        && after.TopProducts.Any(x => x.ProductId == productId && x.UnitsSold == unitsForTest + 2),
         "omzet, jumlah transaksi, dan top produk sesuai transaksi");
 
     var triggerName = "TR_TestRollback_" + suffix;

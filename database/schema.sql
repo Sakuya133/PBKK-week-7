@@ -73,6 +73,8 @@ END;
 GO
 IF COL_LENGTH(N'dbo.Transactions', N'RequestId') IS NULL
     ALTER TABLE dbo.Transactions ADD RequestId uniqueidentifier NULL;
+IF COL_LENGTH(N'dbo.Transactions', N'GuestName') IS NULL
+    ALTER TABLE dbo.Transactions ADD GuestName nvarchar(80) NULL;
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.Transactions') AND name=N'UX_Transactions_RequestId')
     CREATE UNIQUE INDEX UX_Transactions_RequestId ON dbo.Transactions(RequestId) WHERE RequestId IS NOT NULL;
 GO
@@ -93,5 +95,50 @@ BEGIN
         CONSTRAINT CK_TransactionItems_Price CHECK (UnitPrice > 0 AND Subtotal = UnitPrice * Quantity)
     );
     CREATE INDEX IX_TransactionItems_Product ON dbo.TransactionItems(ProductId);
+END;
+GO
+IF OBJECT_ID(N'dbo.GuestOrders', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.GuestOrders (
+        Id bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_GuestOrders PRIMARY KEY,
+        Number varchar(48) NOT NULL CONSTRAINT UQ_GuestOrders_Number UNIQUE,
+        RequestId uniqueidentifier NOT NULL CONSTRAINT UQ_GuestOrders_RequestId UNIQUE,
+        GuestName nvarchar(80) NOT NULL,
+        CreatedAt datetimeoffset(7) NOT NULL,
+        PaymentMethod varchar(10) NOT NULL,
+        Total decimal(18,2) NOT NULL,
+        Status varchar(16) NOT NULL CONSTRAINT DF_GuestOrders_Status DEFAULT ('Menunggu'),
+        TransactionId bigint NULL,
+        CONSTRAINT FK_GuestOrders_Transaction FOREIGN KEY (TransactionId) REFERENCES dbo.Transactions(Id),
+        CONSTRAINT CK_GuestOrders_Name CHECK (LEN(TRIM(GuestName)) > 0),
+        CONSTRAINT CK_GuestOrders_Payment CHECK (PaymentMethod IN ('Tunai','Qris')),
+        CONSTRAINT CK_GuestOrders_Total CHECK (Total > 0),
+        CONSTRAINT CK_GuestOrders_Status CHECK (Status IN ('Menunggu','Selesai')),
+        CONSTRAINT CK_GuestOrders_Completed CHECK ((Status='Menunggu' AND TransactionId IS NULL) OR (Status='Selesai' AND TransactionId IS NOT NULL))
+    );
+    CREATE INDEX IX_GuestOrders_Status_CreatedAt ON dbo.GuestOrders(Status,CreatedAt);
+END;
+GO
+IF OBJECT_ID(N'dbo.GuestOrders', N'U') IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.GuestOrders') AND name=N'UX_GuestOrders_TransactionId')
+    CREATE UNIQUE INDEX UX_GuestOrders_TransactionId ON dbo.GuestOrders(TransactionId) WHERE TransactionId IS NOT NULL;
+GO
+IF OBJECT_ID(N'dbo.GuestOrderItems', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.GuestOrderItems (
+        Id bigint IDENTITY(1,1) NOT NULL CONSTRAINT PK_GuestOrderItems PRIMARY KEY,
+        GuestOrderId bigint NOT NULL,
+        ProductId int NOT NULL,
+        ProductName nvarchar(160) NOT NULL,
+        UnitPrice decimal(18,2) NOT NULL,
+        Quantity int NOT NULL,
+        Subtotal decimal(18,2) NOT NULL,
+        CONSTRAINT FK_GuestOrderItems_Order FOREIGN KEY (GuestOrderId) REFERENCES dbo.GuestOrders(Id),
+        CONSTRAINT FK_GuestOrderItems_Product FOREIGN KEY (ProductId) REFERENCES dbo.Products(Id),
+        CONSTRAINT UQ_GuestOrderItems_Order_Product UNIQUE (GuestOrderId,ProductId),
+        CONSTRAINT CK_GuestOrderItems_Quantity CHECK (Quantity > 0),
+        CONSTRAINT CK_GuestOrderItems_Price CHECK (UnitPrice > 0 AND Subtotal = UnitPrice * Quantity)
+    );
+    CREATE INDEX IX_GuestOrderItems_Product ON dbo.GuestOrderItems(ProductId);
 END;
 GO

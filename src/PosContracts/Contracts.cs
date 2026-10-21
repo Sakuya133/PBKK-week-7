@@ -17,7 +17,10 @@ public sealed record ProductInput(string Name, int CategoryId, decimal Price, bo
 public sealed record CustomerOptionDto(int Id, string FullName);
 public sealed record CheckoutItem(int ProductId, int Quantity);
 public sealed record CheckoutRequest(int? CustomerId, PaymentMethod PaymentMethod, IReadOnlyList<CheckoutItem> Items, Guid RequestId);
+public sealed record GuestOrderRequest(string GuestName, PaymentMethod PaymentMethod, IReadOnlyList<CheckoutItem> Items, Guid RequestId);
 public sealed record TransactionItemDto(int ProductId, string ProductName, decimal UnitPrice, int Quantity, decimal Subtotal);
+public sealed record GuestOrderDto(long Id, string Number, string GuestName, DateTimeOffset CreatedAt,
+    PaymentMethod PaymentMethod, decimal Total, IReadOnlyList<TransactionItemDto> Items);
 public sealed record TransactionDto(long Id, string Number, int CashierId, string CashierName, int? CustomerId,
     string? CustomerName, DateTimeOffset CreatedAt, PaymentMethod PaymentMethod, decimal Total,
     IReadOnlyList<TransactionItemDto> Items);
@@ -55,4 +58,11 @@ public interface ITransactionService
 public interface IDashboardService
 {
     Task<ServiceResult<DailySalesDto>> GetTodayAsync(CancellationToken cancellationToken = default);
+}
+public interface IKioskService
+{
+    Task<ServiceResult<IReadOnlyList<ProductDto>>> GetCatalogAsync(CancellationToken cancellationToken = default);
+    Task<ServiceResult<GuestOrderDto>> PlaceOrderAsync(GuestOrderRequest request, CancellationToken cancellationToken = default);
+    Task<ServiceResult<IReadOnlyList<GuestOrderDto>>> GetPendingOrdersAsync(CancellationToken cancellationToken = default);
+    Task<ServiceResult<TransactionDto>> CompleteOrderAsync(long id, CancellationToken cancellationToken = default);
 }

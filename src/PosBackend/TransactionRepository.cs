@@ -7,17 +7,18 @@ internal static class TransactionRepository
 {
     public static async Task<(long Id, DateTimeOffset CreatedAt)> InsertHeaderAsync(SqlConnection connection, SqlTransaction transaction,
         string number, Guid requestId, int cashierId, int? customerId, PaymentMethod payment,
-        decimal total, CancellationToken ct)
+        decimal total, CancellationToken ct, string? guestName = null)
     {
         await using var command = new SqlCommand(
-            "INSERT dbo.Transactions (Number,RequestId,CashierId,CustomerId,CreatedAt,PaymentMethod,Total) " +
+            "INSERT dbo.Transactions (Number,RequestId,CashierId,CustomerId,GuestName,CreatedAt,PaymentMethod,Total) " +
             "OUTPUT INSERTED.Id,INSERTED.CreatedAt VALUES " +
-            "(@number,@request,@cashier,@customer,TODATETIMEOFFSET(SYSUTCDATETIME(), '+00:00'),@payment,@total)",
+            "(@number,@request,@cashier,@customer,@guestName,TODATETIMEOFFSET(SYSUTCDATETIME(), '+00:00'),@payment,@total)",
             connection, transaction);
         command.Parameters.Add("@number", SqlDbType.VarChar, 48).Value = number;
         command.Parameters.Add("@request", SqlDbType.UniqueIdentifier).Value = requestId;
         command.Parameters.Add("@cashier", SqlDbType.Int).Value = cashierId;
         command.Parameters.Add("@customer", SqlDbType.Int).Value = (object?)customerId ?? DBNull.Value;
+        command.Parameters.Add("@guestName", SqlDbType.NVarChar, 80).Value = (object?)guestName ?? DBNull.Value;
         command.Parameters.Add("@payment", SqlDbType.VarChar, 10).Value = payment.ToString();
         AddMoney(command, "@total", total);
         await using var reader = await command.ExecuteReaderAsync(ct);

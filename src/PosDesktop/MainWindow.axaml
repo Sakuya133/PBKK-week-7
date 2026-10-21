@@ -37,8 +37,103 @@
           <TextBlock Text="{Binding ErrorMessage}" Foreground="#B42318" TextWrapping="Wrap" IsVisible="{Binding HasError}" />
           <TextBlock Text="{Binding SuccessMessage}" Foreground="#138A62" TextWrapping="Wrap" IsVisible="{Binding HasSuccess}" />
           <StackPanel Spacing="2"><TextBlock Text="API yang dipakai" FontSize="12" Foreground="#77839A" /><TextBlock Text="{Binding ApiUrl}" FontSize="12" Foreground="#77839A" TextWrapping="Wrap" /></StackPanel>
+          <Border Height="1" Background="#E4E9F1" Margin="0,4" />
+          <TextBlock Text="Langsung pesan tanpa akun" FontWeight="SemiBold" Foreground="#26324A" />
+          <Button Content="Mulai pesan sebagai tamu" Classes="primary" Command="{Binding BeginGuestOrderingCommand}" MinHeight="44" />
         </StackPanel>
       </Border>
+    </Grid>
+
+    <!-- Self-service customer kiosk. Guest orders remain pending until a cashier confirms payment. -->
+    <Grid IsVisible="{Binding IsGuestOrdering}" RowDefinitions="Auto,*" Margin="28">
+      <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,20">
+        <StackPanel Orientation="Horizontal" Spacing="13">
+          <Border Width="48" Height="48" CornerRadius="13" Background="White" Padding="2">
+            <Image Source="/Assets/mikogomi.png" Stretch="Uniform" />
+          </Border>
+          <StackPanel VerticalAlignment="Center" Spacing="2">
+            <TextBlock Text="Pesan di Mikogomi" Classes="page-title" FontSize="25" />
+            <TextBlock Text="Pilih menu, isi nama, lalu ambil nomor pesanan di kasir." Classes="muted" />
+            <TextBlock Text="{Binding BusyLabel}" Classes="muted" IsVisible="{Binding IsBusy}" />
+          </StackPanel>
+        </StackPanel>
+        <Button Grid.Column="1" Content="Kembali" Command="{Binding ExitGuestOrderingCommand}" VerticalAlignment="Center" />
+      </Grid>
+      <Grid Grid.Row="1">
+        <ScrollViewer IsVisible="{Binding IsGuestKioskPage}">
+          <Grid ColumnDefinitions="1.15*,*" ColumnSpacing="18">
+            <Border Background="White" CornerRadius="14" Padding="20">
+              <StackPanel Spacing="12">
+                <TextBlock Text="Menu tersedia" Classes="section-title" />
+                <TextBox Text="{Binding ProductSearch}" PlaceholderText="Cari menu" />
+                <ListBox ItemsSource="{Binding FilteredProducts}" SelectedItem="{Binding SelectedProduct}" MinHeight="360">
+                  <ListBox.ItemTemplate><DataTemplate>
+                    <Grid ColumnDefinitions="*,Auto" Margin="5,8">
+                      <StackPanel Spacing="3">
+                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="#26324A" />
+                        <TextBlock Text="{Binding CategoryName}" Classes="muted" FontSize="12" />
+                      </StackPanel>
+                      <TextBlock Grid.Column="1" Text="{Binding Price, StringFormat='{}Rp {0:N0}'}" Foreground="#3157D5" VerticalAlignment="Center" />
+                    </Grid>
+                  </DataTemplate></ListBox.ItemTemplate>
+                </ListBox>
+                <TextBlock Text="Menu belum tersedia." Classes="muted" IsVisible="{Binding FilteredProductsEmpty}" />
+                <Border Height="1" Background="#E4E9F1" Margin="0,3" />
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                  <StackPanel Spacing="3">
+                    <TextBlock Text="{Binding SelectedProduct.Name}" FontWeight="SemiBold" Foreground="#26324A" />
+                    <TextBlock Text="{Binding SelectedProduct.Price, StringFormat='{}Rp {0:N0}'}" Foreground="#3157D5" />
+                  </StackPanel>
+                  <Button Grid.Column="1" Content="Tambah menu" Classes="primary" Command="{Binding AddSelectedProductCommand}" VerticalAlignment="Center" />
+                  <TextBlock Grid.Row="1" Text="Pilih menu dari daftar." Classes="muted" IsVisible="{Binding SelectedProductIsNull}" Margin="0,5,0,0" />
+                </Grid>
+              </StackPanel>
+            </Border>
+            <Border Grid.Column="1" Background="White" CornerRadius="14" Padding="20">
+              <StackPanel Spacing="11">
+                <TextBlock Text="Pesanan kamu" Classes="section-title" />
+                <TextBlock Text="Keranjang masih kosong." Classes="muted" IsVisible="{Binding CartIsEmpty}" />
+                <ItemsControl ItemsSource="{Binding Cart}">
+                  <ItemsControl.ItemTemplate><DataTemplate>
+                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" Margin="0,3,0,8">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                        <Button Content="−" Command="{Binding DecreaseCommand}" Padding="8,3" />
+                        <TextBlock Text="{Binding Quantity}" VerticalAlignment="Center" MinWidth="22" TextAlignment="Center" />
+                        <Button Content="+" Command="{Binding IncreaseCommand}" Padding="8,3" />
+                      </StackPanel>
+                      <TextBlock Grid.Row="1" Text="{Binding SubtotalText, StringFormat='{}Rp {0}'}" Foreground="#3157D5" />
+                      <Button Grid.Row="1" Grid.Column="1" Content="Hapus" Command="{Binding RemoveCommand}" Padding="8,3" HorizontalAlignment="Right" />
+                    </Grid>
+                  </DataTemplate></ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Border Height="1" Background="#E4E9F1" />
+                <Grid ColumnDefinitions="*,Auto"><TextBlock Text="Total" FontWeight="SemiBold" /><TextBlock Grid.Column="1" Text="{Binding CartTotalText}" FontSize="21" FontWeight="Bold" Foreground="#3157D5" /></Grid>
+                <TextBlock Text="Nama pemesan" FontWeight="SemiBold" />
+                <TextBox Text="{Binding GuestName}" MaxLength="80" PlaceholderText="Contoh: Budi" MinHeight="42" />
+                <TextBlock Text="Bayar di kasir dengan" FontWeight="SemiBold" />
+                <ComboBox ItemsSource="{Binding PaymentChoices}" SelectedItem="{Binding SelectedPayment}">
+                  <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
+                </ComboBox>
+                <Button Content="Kirim pesanan" Classes="primary" Command="{Binding SubmitGuestOrderCommand}" MinHeight="44" />
+                <TextBlock Text="Pembayaran dikonfirmasi kasir saat pesanan diambil." Classes="muted" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="#B42318" TextWrapping="Wrap" IsVisible="{Binding HasError}" />
+              </StackPanel>
+            </Border>
+          </Grid>
+        </ScrollViewer>
+        <Border IsVisible="{Binding IsGuestOrderComplete}" Background="White" CornerRadius="18" Padding="36" MaxWidth="620" HorizontalAlignment="Center" VerticalAlignment="Center">
+          <StackPanel Spacing="14" HorizontalAlignment="Center">
+            <TextBlock Text="Pesanan terkirim" FontSize="30" FontWeight="Bold" Foreground="#162342" HorizontalAlignment="Center" />
+            <TextBlock Text="{Binding GuestName}" FontSize="19" Foreground="#526079" HorizontalAlignment="Center" />
+            <TextBlock Text="Nomor pesanan" Classes="muted" HorizontalAlignment="Center" />
+            <TextBlock Text="{Binding GuestOrderNumber}" FontSize="27" FontWeight="Bold" Foreground="#3157D5" HorizontalAlignment="Center" />
+            <TextBlock Text="Tunjukkan nomor ini di kasir untuk membayar dan mengambil pesanan." TextWrapping="Wrap" TextAlignment="Center" MaxWidth="430" Foreground="#526079" />
+            <Button Content="Buat pesanan baru" Classes="primary" Command="{Binding StartGuestOrderCommand}" HorizontalAlignment="Center" />
+          </StackPanel>
+        </Border>
+        <TextBlock Text="{Binding ErrorMessage}" Foreground="#B42318" TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Bottom" IsVisible="{Binding HasError}" />
+      </Grid>
     </Grid>
 
     <!-- Authenticated application shell. -->
@@ -195,6 +290,28 @@
                 </Border>
                 <Border Grid.Column="1" Background="White" CornerRadius="14" Padding="18">
                   <StackPanel Spacing="12">
+                    <TextBlock Text="Pesanan kiosk menunggu" Classes="section-title" />
+                    <ListBox ItemsSource="{Binding PendingGuestOrders}" SelectedItem="{Binding SelectedGuestOrder}" Height="125">
+                      <ListBox.ItemTemplate><DataTemplate>
+                        <StackPanel Spacing="3" Margin="3,5">
+                          <TextBlock Text="{Binding GuestName}" FontWeight="SemiBold" Foreground="#26324A" />
+                          <TextBlock Text="{Binding Number}" Classes="muted" FontSize="11" />
+                          <TextBlock Text="{Binding Total, StringFormat='{}Rp {0:N0}'}" Foreground="#3157D5" />
+                        </StackPanel>
+                      </DataTemplate></ListBox.ItemTemplate>
+                    </ListBox>
+                    <TextBlock Text="Belum ada pesanan kiosk." Classes="muted" IsVisible="{Binding PendingGuestOrdersEmpty}" />
+                    <TextBlock Text="{Binding SelectedGuestOrderTitle}" Classes="muted" TextWrapping="Wrap" />
+                    <ItemsControl ItemsSource="{Binding SelectedGuestOrder.Items}">
+                      <ItemsControl.ItemTemplate><DataTemplate>
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+                          <TextBlock Text="{Binding ProductName}" TextWrapping="Wrap" />
+                          <TextBlock Grid.Column="1" Text="{Binding Quantity, StringFormat='× {0}'}" Foreground="#526079" />
+                        </Grid>
+                      </DataTemplate></ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Content="Pembayaran diterima · simpan transaksi" Command="{Binding CompleteGuestOrderCommand}" />
+                    <Border Height="1" Background="#E4E9F1" Margin="0,4" />
                     <TextBlock Text="Keranjang" Classes="section-title" />
                     <TextBlock Text="Keranjang masih kosong." Classes="muted" IsVisible="{Binding CartIsEmpty}" />
                     <ItemsControl ItemsSource="{Binding Cart}">

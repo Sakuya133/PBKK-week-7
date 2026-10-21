@@ -28,6 +28,13 @@ try
     var catalog = await services.Products.GetCatalogAsync();
     Check(catalog.Success && catalog.Value?.Count == 1 && catalog.Value[0].Price == 12500m && handler.TokenSeen,
         "catalog membaca DTO dan mengirim bearer token");
+    var kioskCatalog = await services.Kiosk.GetCatalogAsync();
+    Check(kioskCatalog.Success && handler.PublicKioskCatalogSeen,
+        "katalog kiosk dapat dibaca tanpa token login");
+    var guestOrder = await services.Kiosk.PlaceOrderAsync(new("Budi", PaymentMethod.Qris,
+        [new CheckoutItem(1, 2)], Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc")));
+    Check(guestOrder.Success && guestOrder.Value?.GuestName == "Budi" && handler.GuestOrderSeen,
+        "pesanan tamu dikirim tanpa bearer dan nama pemesan diterima");
     var denied = await services.Dashboard.GetTodayAsync();
     Check(denied.Error == ErrorCode.Forbidden, "error role server diteruskan");
     var logout = await services.Auth.LogoutAsync();
@@ -54,6 +61,8 @@ sealed class FakeHandler(string token) : HttpMessageHandler
     public bool TokenSeen { get; private set; }
     public bool LogoutSeen { get; private set; }
     public bool HealthSeen { get; private set; }
+    public bool PublicKioskCatalogSeen { get; private set; }
+    public bool GuestOrderSeen { get; private set; }
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var path = request.RequestUri!.AbsolutePath;
@@ -71,6 +80,17 @@ sealed class FakeHandler(string token) : HttpMessageHandler
         {
             TokenSeen = true;
             return Reply(HttpStatusCode.OK, """{"success":true,"value":[{"id":1,"name":"Kopi","categoryId":1,"categoryName":"Minuman","price":12500,"isActive":true}],"error":"None","message":"OK"}""");
+        }
+        if (path == "/api/kiosk/catalog" && bearer is null)
+        {
+            PublicKioskCatalogSeen = true;
+            return Reply(HttpStatusCode.OK, """{"success":true,"value":[{"id":1,"name":"Kopi","categoryId":1,"categoryName":"Minuman","price":12500,"isActive":true}],"error":"None","message":"OK"}""");
+        }
+        if (path == "/api/kiosk/orders" && bearer is null)
+        {
+            using var body = JsonDocument.Parse(request.Content!.ReadAsStringAsync(cancellationToken).GetAwaiter().GetResult());
+            GuestOrderSeen = body.RootElement.GetProperty("guestName").GetString() == "Budi";
+            return Reply(HttpStatusCode.OK, """{"success":true,"value":{"id":8,"number":"ORD-TEST","guestName":"Budi","createdAt":"2026-01-01T00:00:00+00:00","paymentMethod":"Qris","total":25000,"items":[{"productId":1,"productName":"Kopi","unitPrice":12500,"quantity":2,"subtotal":25000}]},"error":"None","message":"OK"}""");
         }
         if (path == "/api/dashboard/today" && bearer == token)
             return Reply(HttpStatusCode.Forbidden, """{"success":false,"value":null,"error":"Forbidden","message":"Akses ditolak."}""");

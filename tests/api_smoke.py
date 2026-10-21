@@ -33,6 +33,8 @@ admin = login('admin', 'Admin123!')
 kasir = login('kasir', 'Kasir123!')
 pelanggan = login('pelanggan', 'Pelanggan123!')
 pelanggan2 = login('pelanggan2', 'Pelanggan234!')
+status, kiosk_catalog = call('GET', '/api/kiosk/catalog')
+assert status == 200 and kiosk_catalog['value'], (status, kiosk_catalog)
 status, catalog = call('GET', '/api/products/catalog', pelanggan)
 assert status == 200 and catalog['value']
 status, denied = call('GET', '/api/dashboard/today', pelanggan)
@@ -53,8 +55,25 @@ status, own = call('GET', f'/api/transactions/{transaction_id}', pelanggan)
 assert status == 200 and own['value']['id'] == transaction_id
 status, other = call('GET', f'/api/transactions/{transaction_id}', pelanggan2)
 assert status == 404 and other['error'] == 'NotFound'
+guest_request = {'guestName': 'Tamu Smoke', 'paymentMethod': 'Qris',
+                 'items': [{'productId': kiosk_catalog['value'][0]['id'], 'quantity': 2}],
+                 'requestId': str(uuid.uuid4())}
+status, guest_order = call('POST', '/api/kiosk/orders', body=guest_request)
+assert status == 200 and guest_order['value']['guestName'] == 'Tamu Smoke', (status, guest_order)
+status, guest_retry = call('POST', '/api/kiosk/orders', body=guest_request)
+assert status == 200 and guest_retry['value']['id'] == guest_order['value']['id'], (status, guest_retry)
+status, guest_queue = call('GET', '/api/kiosk/orders/pending')
+assert status == 401
+status, guest_queue = call('GET', '/api/kiosk/orders/pending', kasir)
+assert status == 200 and any(x['id'] == guest_order['value']['id'] for x in guest_queue['value'])
+status, guest_sale = call('POST', f"/api/kiosk/orders/{guest_order['value']['id']}/complete", kasir)
+assert status == 200 and guest_sale['value']['customerName'] == 'Tamu Smoke', (status, guest_sale)
+status, guest_detail = call('GET', f"/api/transactions/{guest_sale['value']['id']}", kasir)
+assert status == 200 and guest_detail['value']['items'][0]['quantity'] == 2
+status, repeated_completion = call('POST', f"/api/kiosk/orders/{guest_order['value']['id']}/complete", kasir)
+assert status == 409 and repeated_completion['error'] == 'Conflict'
 status, dashboard = call('GET', '/api/dashboard/today', admin)
-assert status == 200 and dashboard['value']['transactionCount'] >= 1
+assert status == 200 and dashboard['value']['transactionCount'] >= 2
 status, logout = call('POST', '/api/auth/logout', pelanggan)
 assert status == 200 and logout['success']
 status, after_logout = call('GET', '/api/products/catalog', pelanggan)
@@ -62,4 +81,4 @@ assert status == 401 and after_logout['error'] == 'Unauthorized'
 statuses = [call('POST', '/api/auth/login', body={'username': 'tidak_ada', 'password': 'salah'})[0]
             for _ in range(12)]
 assert 429 in statuses, statuses
-print('API smoke: login, RBAC, checkout, idempotensi, isolasi pelanggan, dashboard, logout, rate limit LULUS')
+print('API smoke: login, RBAC, checkout, kiosk tamu, idempotensi, konfirmasi kasir, isolasi pelanggan, dashboard, logout, rate limit LULUS')
