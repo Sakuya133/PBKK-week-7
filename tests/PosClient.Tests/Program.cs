@@ -20,6 +20,8 @@ try
     var handler = new FakeHandler(token);
     using var http = new HttpClient(handler) { BaseAddress = new Uri("https://pos.example.test/") };
     using var services = new PosRemoteServices(http);
+    var health = await services.CheckHealthAsync();
+    Check(health.Success && handler.HealthSeen, "health API dapat diperiksa tanpa login");
     var login = await services.Auth.LoginAsync("kasir", "Password123!");
     Check(login.Success && login.Value?.Role == UserRole.Kasir && services.Auth.CurrentUser?.Id == 5,
         "login menyimpan pengguna dan token sesi");
@@ -37,6 +39,8 @@ try
     using var broken = new PosRemoteServices(brokenHttp);
     Check((await broken.Auth.LoginAsync("x", "y")).Error == ErrorCode.ServiceUnavailable,
         "koneksi gagal menghasilkan error yang dapat ditampilkan");
+    Check((await broken.CheckHealthAsync()).Error == ErrorCode.ServiceUnavailable,
+        "health API menampilkan koneksi gagal tanpa crash");
     return 0;
 }
 catch (Exception ex)
@@ -49,10 +53,16 @@ sealed class FakeHandler(string token) : HttpMessageHandler
 {
     public bool TokenSeen { get; private set; }
     public bool LogoutSeen { get; private set; }
+    public bool HealthSeen { get; private set; }
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var path = request.RequestUri!.AbsolutePath;
         var bearer = request.Headers.Authorization?.Parameter;
+        if (path == "/health")
+        {
+            HealthSeen = true;
+            return Reply(HttpStatusCode.OK, "{\"status\":\"ok\"}");
+        }
         if (path == "/api/auth/login")
             return Reply(HttpStatusCode.OK, JsonSerializer.Serialize(new { success = true,
                 value = new { user = new { id = 5, username = "kasir", fullName = "Kasir", role = "Kasir" },

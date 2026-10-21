@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=POS Desktop
+Comment=Aplikasi kasir POS
+Exec=launch-posdesktop.sh
+Terminal=false
+Categories=Office;Finance;
+StartupWMClass=PosDesktop

@@ -5,3 +5,7 @@
 *.suo
 .env
 appsettings.local.json
+artifacts/
+.pos-package-*
+*.core
+__pycache__/

@@ -6,7 +6,7 @@ using PosBackend;
 
 namespace PosClient;
 
-/// <summary>Client API untuk ViewModel WPF. Simpan instance ini selama satu sesi aplikasi.</summary>
+/// <summary>Client HTTP untuk ViewModel desktop. Simpan instance ini selama satu sesi aplikasi.</summary>
 public sealed class PosRemoteServices : IAuthService, IProductService, ITransactionService, IDashboardService, IDisposable
 {
     private readonly HttpClient _http;
@@ -22,6 +22,24 @@ public sealed class PosRemoteServices : IAuthService, IProductService, ITransact
     public ITransactionService Transactions => this;
     public IDashboardService Dashboard => this;
     public UserDto? CurrentUser { get { lock (_gate) return _user; } }
+
+    /// <summary>Checks API reachability without requiring a database-backed login.</summary>
+    public async Task<ServiceResult<bool>> CheckHealthAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(TimeSpan.FromSeconds(4));
+            using var response = await _http.GetAsync("health", HttpCompletionOption.ResponseHeadersRead, timeout.Token);
+            return response.IsSuccessStatusCode
+                ? ServiceResult<bool>.Ok(true)
+                : ServiceResult<bool>.Fail(ErrorCode.ServiceUnavailable, $"API memberi status HTTP {(int)response.StatusCode}.");
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        { return ServiceResult<bool>.Fail(ErrorCode.ServiceUnavailable, "API belum merespons."); }
+        catch (HttpRequestException)
+        { return ServiceResult<bool>.Fail(ErrorCode.ServiceUnavailable, "API tidak dapat dihubungi."); }
+    }
 
     public PosRemoteServices(Uri apiBaseAddress) : this(new HttpClient { BaseAddress = apiBaseAddress }, true, false) { }
     public static PosRemoteServices CreateForDevelopment(Uri loopbackBaseAddress) =>

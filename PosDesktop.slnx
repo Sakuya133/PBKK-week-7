@@ -3,6 +3,7 @@
     <Project Path="src/PosBackend/PosBackend.csproj" />
     <Project Path="src/PosClient/PosClient.csproj" />
     <Project Path="src/PosContracts/PosContracts.csproj" />
+    <Project Path="src/PosDesktop/PosDesktop.csproj" />
     <Project Path="src/PosServer/PosServer.csproj" />
   </Folder>
   <Folder Name="/tests/">

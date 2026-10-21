@@ -1,186 +1,155 @@
-# POS Desktop — backend dan API
+# POS Desktop
 
-Backend POS untuk tugas Framework Programming. Frontend WPF belum ada di repository. MVP: login tiga role, katalog, kelola produk oleh Admin, checkout oleh Kasir, riwayat sesuai hak akses, dan dashboard harian. Tunai/QRIS hanya dicatat sesudah kasir mengonfirmasi pembayaran secara manual. Registrasi, edit profil, CRUD kategori, grafik, dan pengelolaan pelanggan lengkap belum tersedia.
+Aplikasi kasir desktop Windows/Linux x64. UI memakai Avalonia dan MVVM sederhana; client desktop memanggil API ASP.NET Core melalui HTTP(S). API memakai ADO.NET dan SQL Server. SQL Server tidak disertakan dalam executable.
 
-Arsitektur produksi: **WPF → HTTPS → PosServer → SQL Server**. Kredensial SQL hanya berada di host server. `PosClient` memberi frontend interface service yang sama dengan backend. Library `PosBackend` berisi aturan bisnis dan ADO.NET; jangan dipakai untuk koneksi SQL langsung dari WPF. SQL Server tetap merupakan kebutuhan terpisah dari executable WPF maupun API.
+Jendela login tetap terbuka saat API tidak tersedia dan memiliki tombol **Coba hubungkan lagi**. Login, katalog, transaksi, riwayat, dan dashboard perlu API serta database aktif.
 
-## Langkah berikutnya untuk tim frontend
+## Fitur dan hak akses
 
-Buat proyek WPF `net10.0-windows` di `src/PosWpf/` (atau gunakan proyek tim yang sudah ada) dan tambahkan ke solution. Referensikan **hanya** `src/PosClient/PosClient.csproj`; kontrak dan DTO ada di `src/PosContracts/Contracts.cs`.
+| Fitur | Admin | Kasir | Pelanggan |
+|---|:---:|:---:|:---:|
+| Login/logout | ✓ | ✓ | ✓ |
+| Katalog produk aktif | ✓ | ✓ | ✓ |
+| Tambah, edit, nonaktifkan produk | ✓ | — | — |
+| Omzet, jumlah transaksi, top 5 produk hari ini | ✓ | — | — |
+| Checkout; pelanggan terdaftar atau Umum; Tunai/QRIS | — | ✓ | — |
+| Riwayat dan detail transaksi | Semua | Transaksi sendiri | Pembelian sendiri |
 
-- Saat startup, buat satu `PosRemoteServices` dengan URL API dan berikan `Auth`, `Products`, `Transactions`, serta `Dashboard` ke ViewModels. Contoh: [integrasi WPF](#contoh-integrasi-wpf).
-- Buat Views/XAML dan ViewModels untuk login; produk, transaksi, dan dashboard Admin; checkout dan riwayat Kasir; katalog dan riwayat Pelanggan. Tampilkan `ServiceResult<T>.Message` saat operasi gagal.
-- Saat checkout, konfirmasi pembayaran manual, gunakan `CustomerId=null` untuk “Umum”, dan simpan `RequestId` yang sama untuk retry.
-
-Jalankan API dan SQL Server sesuai [panduan setup](#setup-sql-server). WPF hanya menyimpan URL API, bukan kredensial SQL.
+Kasir mengonfirmasi pembayaran secara manual sebelum checkout dikirim. API membaca ulang harga/status produk dari database; checkout menyimpan header dan item secara atomik, memakai RequestId untuk mencegah duplikasi, dan menyimpan snapshot nama/harga. Pembelian Umum tidak dikaitkan ke akun pelanggan.
 
 ## Teknologi dan struktur
 
-Target `net10.0` dipilih karena SDK 10.0.112 tersedia di lingkungan ini dan .NET 10 adalah [rilis LTS](https://learn.microsoft.com/en-us/dotnet/core/releases-and-support). WPF nanti memakai `net10.0-windows`. Server menggunakan ASP.NET Core Minimal API. Akses data memakai Microsoft.Data.SqlClient 7.1.1; password memakai Microsoft.AspNetCore.Identity PasswordHasher (PBKDF2 Identity V3, 600.000 iterasi, salt acak). SQL Server 2019+ atau Express diperlukan. Build WPF/publish `win-x64` memerlukan Windows dan .NET 10 SDK.
+- .NET 10, Avalonia 12.1.4, C#, SQL Server 2019+.
+- Microsoft.Data.SqlClient hanya digunakan oleh backend/API; tidak ada koneksi SQL langsung dari desktop.
+- Password memakai ASP.NET Core Identity PasswordHasher. Sesi bearer disimpan di server dalam bentuk hash.
+- Batas harian laporan menggunakan Asia/Jakarta.
 
-| Folder/file | Fungsi |
+| Path | Isi |
 |---|---|
-| `src/PosContracts` | DTO, interface service, dan pola hasil/error; tanpa SQL |
-| `src/PosBackend` | Service bisnis, repository ADO.NET, hashing; hanya untuk server/setup |
-| `src/PosServer` | HTTPS API, bearer session, pembatasan login |
-| `src/PosClient` | Adaptor HTTP untuk interface service pada ViewModel WPF |
-| `database/schema.sql` | Lima tabel utama, constraint, indeks, migrasi sederhana |
-| `database/server.sql` | Tabel tambahan `AuthSessions` |
-| `database/seed.sql`, `demo.sql` | Kategori awal; produk/akun demo opsional |
-| `database/permissions.sql` | Role SQL `pos_api_role` untuk akun runtime API |
-| `tools/PosSetup` | Setup/seed/akun awal dari terminal tepercaya |
-| `tests/PosBackend.Tests`, `tests/PosClient.Tests`, `tests/api_smoke.py` | Tes bisnis/SQL, client, dan API |
+| `src/PosDesktop` | Aplikasi Avalonia, XAML, ViewModel, konfigurasi client |
+| `src/PosClient` | Adaptor HTTP service |
+| `src/PosContracts` | DTO, interface, hasil/error |
+| `src/PosServer` | API ASP.NET Core dan sesi login |
+| `src/PosBackend` | Service bisnis, aturan akses, repository ADO.NET |
+| `tools/PosSetup` | Setup schema, seed, dan akun awal |
+| `database` | Schema, seed, demo, dan izin SQL |
+| `tests` | Tes client/backend dan API smoke test |
+| `scripts/package_cross_platform.py` | Publish dan arsip paket Linux/Windows |
 
-Backend menangani login, izin, validasi, harga, transaksi atomik, statistik, dan error. Tim frontend menangani Views/XAML, ViewModels, styling, navigasi, konfirmasi pembayaran, dan binding hasil service. Backend tidak memakai kontrol WPF.
+Alur UI: XAML bind ke MainViewModel → ViewModel memanggil PosClient → PosClient mengirim request ke PosServer → backend memeriksa izin/validasi dan mengakses SQL Server.
 
-## Hak akses
+## Konfigurasi client
 
-| Operasi | Admin | Kasir | Pelanggan |
-|---|:---:|:---:|:---:|
-| Login/logout, katalog aktif, kategori | ✓ | ✓ | ✓ |
-| Semua produk termasuk nonaktif; tambah/ubah/nonaktifkan | ✓ | — | — |
-| Daftar pelanggan aktif, checkout | — | ✓ | — |
-| Daftar/detail transaksi | Semua | Yang dicatat sendiri | Yang terhubung ke akunnya |
-| Omzet/jumlah/top 5 hari ini | ✓ | — | — |
+Urutan alamat API: environment `POS_API_URL`, file konfigurasi user, lalu alamat development lokal. `POS_CLIENT_CONFIG` dapat menentukan path file konfigurasi.
 
-`CustomerId = null` berarti “Umum”; pembelian itu tidak muncul pada riwayat pelanggan. Semua endpoint selain login dan health memerlukan token. Role/status akun dibaca ulang dari database pada tiap permintaan; service juga memeriksa izin dan memfilter transaksi di SQL. Role dan identitas kasir berasal dari sesi, bukan dari input checkout. Detail transaksi di luar hak akses mengembalikan `NotFound`.
+- Linux: `$XDG_CONFIG_HOME/posdesktop/pos-client.json`, atau `~/.config/posdesktop/pos-client.json`.
+- Windows: `%APPDATA%\posdesktop\pos-client.json`.
+- Contoh isi file: `{"apiUrl":"http://127.0.0.1:5077/"}`.
 
-## Database dan transaksi
+HTTP hanya diterima pada API development loopback. Server pada jaringan harus memakai HTTPS dengan sertifikat tepercaya. Jangan menyimpan connection string SQL pada client.
 
-| Tabel | Kolom utama dan aturan |
-|---|---|
-| `Users` | `Id`, username unik, `PasswordHash`, nama, role, aktif, hitungan login gagal, batas lockout |
-| `Categories` | `Id`, nama unik; seed kategori awal |
-| `Products` | `Id`, nama, FK kategori, harga `decimal(18,2)` positif, aktif |
-| `Transactions` | `Id`, nomor dan `RequestId` unik, FK kasir, FK pelanggan nullable, waktu UTC, metode, total `decimal(18,2)` |
-| `TransactionItems` | FK transaksi/produk, snapshot nama/harga, kuantitas positif, subtotal; produk unik per transaksi |
-| `AuthSessions` | Tabel tambahan server: FK pengguna, SHA-256 hash token unik, waktu dibuat/kedaluwarsa/dicabut |
+## Database dan akun demo
 
-Query berparameter. Saat checkout, service memvalidasi produk/pelanggan aktif, membaca ulang harga dari SQL, menghitung subtotal/total, lalu menyimpan header dan item dalam satu SQL transaction. Gagal berarti rollback. `RequestId` mencegah duplikasi ketika koneksi putus; gunakan `GetByRequestIdAsync` untuk memeriksa hasil yang ambigu. Snapshot item menjaga transaksi lama saat produk berubah. Lima login gagal mengunci akun 15 menit. Token acak 256 bit berlaku 8 jam, disimpan sebagai hash di SQL, dan dicabut saat logout. Dashboard memakai jam UTC SQL Server dan batas hari Asia/Jakarta.
+SQL Server harus tersedia dan dapat diakses dari host API. Atur connection string hanya di terminal host setup/API. Contoh untuk Linux development:
 
-## Setup SQL Server
+~~~bash
+export POS_CONNECTION_STRING='Server=localhost;Database=PosDesktop;User ID=sa;Password=GANTI_PASSWORD;Encrypt=true;TrustServerCertificate=true'
+dotnet run --project tools/PosSetup -- --demo
+~~~
 
-1. Siapkan SQL Server; gunakan akun setup dengan hak membuat database. Isi `POS_CONNECTION_STRING` **di environment host PosSetup/PosServer**, bukan di source atau mesin WPF. `.env.example` dan `.env.production.example` hanya contoh, tidak dimuat otomatis. Untuk pengembangan lokal dengan sertifikat SQL belum tepercaya:
+Setup idempotent dan tidak menghapus transaksi/pengguna. Untuk production gunakan sertifikat tepercaya (`TrustServerCertificate=false`) dan role runtime minimum dari `database/permissions.sql`.
 
-   ```powershell
-   $env:POS_CONNECTION_STRING = 'Server=localhost;Database=PosDesktop;Integrated Security=true;Encrypt=true;TrustServerCertificate=true'
-   ```
+Akun demo khusus development: Admin `admin` / `Admin123!`; Kasir `kasir` / `Kasir123!`; Pelanggan `pelanggan` / `Pelanggan123!`; Pelanggan kedua `pelanggan2` / `Pelanggan234!`. Jangan jalankan seed demo di production.
 
-2. Jalankan setup dan buat Admin awal. Password dibaca tanpa echo jika terminal interaktif; untuk otomasi gunakan `POS_INITIAL_ADMIN_PASSWORD` sementara. Setup boleh diulang tanpa menghapus transaksi.
+## Build, jalankan, dan uji
 
-   ```powershell
-   dotnet run --project tools/PosSetup
-   dotnet run --project tools/PosSetup -- --create-admin admin_utama
-   ```
-
-3. Buat akun Kasir/Pelanggan dari terminal tepercaya (password tanpa echo, atau `POS_NEW_USER_PASSWORD` sementara):
-
-   ```powershell
-   dotnet run --project tools/PosSetup -- --create-user Kasir kasir_1 "Nama Kasir"
-   dotnet run --project tools/PosSetup -- --create-user Pelanggan pelanggan_1 "Nama Pelanggan"
-   ```
-
-4. DBA membuat login/user SQL **khusus runtime API**, memasukkannya ke `pos_api_role` di database `PosDesktop`, tanpa `db_owner` atau `db_datawriter`. Akun setup terpisah. Akses port SQL hanya dari host API; jangan buka SQL ke terminal WPF. `permissions.sql` juga mencabut hak role lama `pos_app_role` bila ada. Pasang sertifikat SQL yang tepercaya dan gunakan `Encrypt=true;TrustServerCertificate=false` pada server production. Jangan beri frontend connection string.
-
-5. Khusus database pengembangan: `dotnet run --project tools/PosSetup -- --demo`. Seed ini idempotent dan menambah produk serta akun demo: `admin` / `Admin123!`, `kasir` / `Kasir123!`, `pelanggan` / `Pelanggan123!`, `pelanggan2` / `Pelanggan234!`. **Jangan jalankan `--demo` di production.**
-
-## Menjalankan API
-
-Di host server, set `POS_CONNECTION_STRING`, `ASPNETCORE_ENVIRONMENT=Production`, `ASPNETCORE_URLS=https://0.0.0.0:8443`, dan sertifikat HTTPS Kestrel yang dipercaya klien (misalnya via `ASPNETCORE_Kestrel__Certificates__Default__Path` dan `...__Password` pada secret host). Jalankan `dotnet run --project src/PosServer` untuk pengembangan atau publish server untuk deployment. API menolak HTTP di mode normal. Untuk development lokal saja, set `ASPNETCORE_ENVIRONMENT=Development`, `POS_API_ALLOW_HTTP_DEV=true`, dan `ASPNETCORE_URLS=http://127.0.0.1:5077`; HTTP hanya diterima dari loopback. Endpoint `/health` hanya menyatakan proses hidup, tidak memeriksa database.
-
-Akun SQL runtime API boleh membaca tabel bisnis dan menyimpan transaksi/sesi sesuai `pos_api_role`; tidak boleh membuat akun produk lewat hak DBA. Lindungi file konfigurasi, secret, sertifikat, jaringan, dan backup di host server. Gunakan sertifikat HTTPS valid pada klien. Aplikasi ini belum menyediakan pembayaran elektronik nyata, audit log terpusat, backup otomatis, atau pengelolaan akun mandiri; operasional production memerlukan prosedur di luar repository.
-
-## Kontrak service untuk frontend
-
-Frontend mereferensikan `src/PosClient/PosClient.csproj` (DTO/interface berasal dari referensi transitif `PosContracts`, tanpa paket SQL). Namespace kontrak tetap `PosBackend` untuk pemanggilan `using PosBackend;`. `PosRemoteServices` menyediakan `Auth`, `Products`, `Transactions`, `Dashboard`. Semua operasi async menerima `CancellationToken` opsional. `ServiceResult<T>` berisi `Success`, `Value`, `Error`, `Message`; saat gagal, `Value` null/default. `ErrorCode`: `Validation`, `Unauthorized`, `Forbidden`, `NotFound`, `Conflict`, `DatabaseUnavailable`, `DatabaseError`, `InternalError`, `ServiceUnavailable`, `RateLimited`; `None` untuk sukses. Koneksi HTTP gagal/timeout menghasilkan `ServiceUnavailable`; terlalu banyak percobaan login menghasilkan `RateLimited`. Error SQL diberi pesan umum tanpa kredensial. Pembatalan oleh caller melempar `OperationCanceledException`.
-
-| Interface dan method | Parameter | Hasil | Role |
-|---|---|---|---|
-| `IAuthService.CurrentUser` | — | `UserDto?` dari login lokal | Semua |
-| `LoginAsync(username, password)` | string, string | `UserDto` | Semua; login salah `Unauthorized` |
-| `LogoutAsync()` | — | `bool` | Semua; mencabut token di server dan membersihkan sesi lokal |
-| `IProductService.GetCatalogAsync()` | — | `IReadOnlyList<ProductDto>` aktif | Semua login |
-| `GetCategoriesAsync()` | — | `IReadOnlyList<CategoryDto>` | Semua login |
-| `GetAllAsync()` | — | `IReadOnlyList<ProductDto>` semua | Admin |
-| `CreateAsync(ProductInput)` | nama, kategori, harga, aktif | `ProductDto` | Admin |
-| `UpdateAsync(id, ProductInput)` | ID dan input | `ProductDto` | Admin |
-| `DeactivateAsync(id)` | ID | `bool` | Admin |
-| `ITransactionService.GetCustomerOptionsAsync()` | — | `IReadOnlyList<CustomerOptionDto>` | Kasir |
-| `CheckoutAsync(CheckoutRequest)` | pelanggan nullable, pembayaran, item, RequestId | `TransactionDto` | Kasir |
-| `GetByRequestIdAsync(Guid)` | RequestId checkout | `TransactionDto` | Kasir pencatat |
-| `GetTransactionsAsync()` | — | 100 transaksi terbaru | Semua, sesuai scope |
-| `GetTransactionsPageAsync(page, pageSize=50)` | halaman mulai 1; ukuran 1–100 | `TransactionPageDto`, `HasMore` | Semua, sesuai scope |
-| `GetDetailAsync(id)` | ID transaksi | `TransactionDto` beserta item | Semua, sesuai scope |
-| `IDashboardService.GetTodayAsync()` | — | `DailySalesDto` | Admin |
-
-`ProductInput` memerlukan harga positif, maksimal dua angka desimal. `CheckoutRequest` memakai `PaymentMethod.Tunai`/`Qris`, `CustomerId=null` untuk Umum, 1–100 `CheckoutItem` dengan produk unik dan kuantitas integer positif, serta `RequestId=Guid.NewGuid()`. Gunakan **Guid yang sama** pada retry. Contoh error: input buruk `Validation`; tidak login/token kedaluwarsa `Unauthorized`; role salah `Forbidden`; transaksi di luar scope `NotFound`; RequestId duplikat `Conflict`; SQL gagal `DatabaseUnavailable`/`DatabaseError`; API tidak terjangkau `ServiceUnavailable`. Respons API memakai bentuk `ServiceResult<T>` dan status HTTP yang sesuai; login mengirim token hanya ke client service, tidak ke ViewModel.
-
-### Contoh integrasi WPF
-
-```csharp
-using PosBackend;
-using PosClient;
-
-// Buat satu instance pada startup WPF, inject ke ViewModels.
-using var services = new PosRemoteServices(new Uri("https://pos.example.com:8443/"));
-var login = await services.Auth.LoginAsync(enteredUsername, enteredPassword);
-if (!login.Success) { ErrorText = login.Message; return; }
-
-var catalog = await services.Products.GetCatalogAsync();
-if (!catalog.Success) { ErrorText = catalog.Message; return; }
-Products.Clear();
-foreach (var product in catalog.Value!) Products.Add(product);
-
-// Kasir mengonfirmasi pembayaran manual terlebih dahulu.
-var requestId = Guid.NewGuid(); // simpan di state ViewModel untuk retry
-var checkout = await services.Transactions.CheckoutAsync(
-    new CheckoutRequest(null, PaymentMethod.Tunai,
-        new[] { new CheckoutItem(catalog.Value![0].Id, 2) }, requestId));
-if (!checkout.Success) { ErrorText = checkout.Message; return; }
-
-var history = await services.Transactions.GetTransactionsPageAsync(1, 50);
-if (!history.Success) { ErrorText = history.Message; return; }
-Transactions.Clear();
-foreach (var row in history.Value!.Items) Transactions.Add(row);
-```
-
-Di ViewModel, simpan interface service lewat constructor injection sederhana; bind `Message` ke properti error, daftar ke `ObservableCollection<T>`, dan panggil operasi dari async command dengan loading state. Tampilkan opsi “Umum” sebagai `CustomerId=null`. Simpan `RequestId` sampai hasil checkout dipastikan; bila respons hilang, panggil `GetByRequestIdAsync`. Muat ulang koleksi setelah ganti akun. Simpan `PosRemoteServices` selama sesi aplikasi; token hanya di memori. Untuk tes lokal di loopback HTTP, gunakan `PosRemoteServices.CreateForDevelopment(new Uri("http://127.0.0.1:5077/"))`.
-
-## Build dan pengujian
-
-```bash
+~~~bash
 dotnet restore PosDesktop.slnx
-dotnet build PosDesktop.slnx
-dotnet run --project tests/PosBackend.Tests
-dotnet run --project tests/PosClient.Tests
-```
+dotnet build PosDesktop.slnx -c Release
+dotnet run --project tests/PosClient.Tests -c Release
+dotnet run --project tests/PosBackend.Tests -c Release
+~~~
 
-Runner C# tanpa `POS_TEST_CONNECTION_STRING` menguji hash, TLS SQL, dan akses sebelum login, lalu melewati tes SQL. Dengan `POS_TEST_CONNECTION_STRING` yang menunjuk **database khusus bernama `PosDesktopTest`** dan hak membuat database, runner menguji izin `pos_api_role`, login benar/salah, lockout, migrasi hash, role, isolasi pelanggan, retry, snapshot harga, pagination, rollback dengan trigger uji, dan dashboard. Jangan arahkan ke production. Runner client menguji HTTPS, bearer token, deserialisasi DTO, logout, dan error koneksi tanpa SQL. Tes API: siapkan database development dengan `--demo`, jalankan PosServer pada loopback HTTP dev, lalu `python3 tests/api_smoke.py`. Tes itu membuat transaksi demo dan memeriksa login, RBAC, checkout, idempotensi, isolasi pelanggan, dashboard, logout, dan pembatasan login.
+Untuk development, jalankan API di terminal pertama dengan SQL Server aktif:
 
-Verifikasi 18 Oktober 2026: build solution **0 warning, 0 error**; runner bisnis/SQL, runner client, dan API smoke lulus pada SQL Server 2022 container sementara; setup normal berhasil dijalankan ulang. `PosClient` tidak memiliki paket NuGet SQL transitif. Publish API self-contained `linux-x64` berhasil. Ketersediaan Windows/WPF dan publish GUI belum diuji di lingkungan ini. Pengujian beban, penetrasi, pemulihan backup, dan konfigurasi sertifikat production belum dilakukan.
+~~~bash
+export POS_CONNECTION_STRING='Server=localhost;Database=PosDesktop;User ID=sa;Password=GANTI_PASSWORD;Encrypt=true;TrustServerCertificate=true'
+ASPNETCORE_ENVIRONMENT=Development POS_API_ALLOW_HTTP_DEV=true ASPNETCORE_URLS=http://127.0.0.1:5077 dotnet run --project src/PosServer
+~~~
 
-## Publish Windows dan server
+Jalankan UI dari terminal desktop: `dotnet run --project src/PosDesktop`. Endpoint `/health` hanya memeriksa proses API, bukan koneksi database.
 
-Belum ada proyek WPF, jadi publish GUI adalah **langkah integrasi berikutnya**. Setelah frontend dibuat dan mereferensikan `PosClient`:
+Tes backend tanpa `POS_TEST_CONNECTION_STRING` menjalankan tes non-SQL lalu melewati integrasi database. Tes client memakai HTTP handler simulasi dan bukan bukti integrasi SQL. Untuk SQL/API smoke test, siapkan database pengembangan khusus sesuai petunjuk di `tests/PosBackend.Tests` dan `tests/api_smoke.py`; jangan gunakan database production.
 
-```powershell
-dotnet publish path/ke/ProyekWpf.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
-dotnet publish src/PosServer/PosServer.csproj -c Release -r win-x64 --self-contained true -o publish-server
-```
+## Paket Windows dan Linux
 
-Bagikan seluruh isi folder publish WPF ke komputer pengguna, beserta alamat API yang dikonfigurasi di luar source. **Jangan bagikan connection string/sertifikat server** ke klien. Deploy folder `publish-server` hanya pada host API bersama secret SQL dan sertifikat HTTPS yang dijaga; siapkan SQL Server terpisah. Class library backend sendiri tidak menghasilkan aplikasi GUI executable. Untuk layanan Windows permanen, pengaturan service account, auto-start, firewall, sertifikat, log, dan backup harus disiapkan operator.
+Prasyarat build: .NET 10 SDK, Python 3, akses NuGet/internet. Dari root repo jalankan:
 
-## Troubleshooting
+~~~bash
+python3 scripts/package_cross_platform.py
+~~~
 
-| Gejala | Pemeriksaan |
-|---|---|
-| API menolak start | `POS_CONNECTION_STRING` belum diatur, enkripsi SQL nonaktif, atau `TrustServerCertificate=true` di mode normal. |
-| `ServiceUnavailable` di WPF | Periksa alamat API, proses PosServer, firewall, sertifikat HTTPS, dan jaringan. |
-| `DatabaseUnavailable` | Periksa SQL Server, port, database, akun `pos_api_role`, sertifikat SQL, dan environment server. |
-| Login gagal/terkunci | Akun harus dibuat melalui setup; periksa status aktif dan tunggu lockout 15 menit setelah lima kegagalan. |
-| `Unauthorized` setelah logout | Token telah dicabut; login ulang. |
-| `Forbidden` | Role tidak punya izin; lihat matriks akses. |
-| `NotFound` detail transaksi | ID tidak ada atau tidak dimiliki akun. |
-| HTTP 400 “HTTPS wajib” | Pakai URL HTTPS; HTTP hanya boleh development loopback dengan `POS_API_ALLOW_HTTP_DEV=true`. |
-| Setup SQL gagal | Gunakan akun setup berhak `CREATE DATABASE`; pisahkan dari akun runtime API. |
-| Restore/build gagal | Periksa SDK .NET 10 dan akses NuGet. |
+Output self-contained: `artifacts/POS-Desktop-linux-x64/`, `artifacts/POS-Desktop-linux-x64.tar.gz`, `artifacts/POS-Desktop-win-x64/`, dan `artifacts/POS-Desktop-win-x64.zip`. Paket berisi client, dependency Avalonia, launcher, panduan, skrip SQL, API lokal opsional, dan tool setup. SQL Server tetap kebutuhan terpisah. Cross-publish Windows dari Linux tidak membuktikan runtime Windows.
+
+### Unduh paket terbaru
+
+Paket terbaru di [GitHub Releases](https://github.com/Sakuya133/PBKK-week-7/releases). Ubuntu/Linux:
+
+~~~bash
+curl -fL -o POS-Desktop-linux-x64.tar.gz https://github.com/Sakuya133/PBKK-week-7/releases/latest/download/POS-Desktop-linux-x64.tar.gz
+tar -xzf POS-Desktop-linux-x64.tar.gz
+cd POS-Desktop-linux-x64
+./install-desktop.sh
+./launch-posdesktop.sh
+~~~
+
+Windows PowerShell:
+
+~~~powershell
+Invoke-WebRequest https://github.com/Sakuya133/PBKK-week-7/releases/latest/download/POS-Desktop-win-x64.zip -OutFile POS-Desktop-win-x64.zip
+Expand-Archive .\POS-Desktop-win-x64.zip -DestinationPath .\POS-Desktop-win-x64 -Force
+& .\POS-Desktop-win-x64\Launch-POS-Desktop.cmd
+~~~
+
+Download memakai asset bernama sama pada GitHub Release terbaru. Ekstrak dahulu; jangan jalankan executable dari dalam ZIP.
+
+### Ubuntu/Linux
+
+Avalonia menggunakan X11 melalui XWayland secara default. Jalankan dalam sesi desktop grafis yang menyediakan `DISPLAY`. Paket sistem yang diperlukan: `libx11-6`, `libice6`, `libsm6`, `libfontconfig1`. `curl` diperlukan jika memakai launcher untuk memulai API lokal; `x11-utils` memberi preflight `xdpyinfo`.
+
+~~~bash
+sudo apt update
+sudo apt install libx11-6 libice6 libsm6 libfontconfig1 curl x11-utils
+~~~
+
+`install-desktop.sh` memasang shortcut untuk user. Launcher mendukung path ber-spasi, memeriksa display tanpa menebak `DISPLAY` atau mengubah `XAUTHORITY`, dan menulis log di `$XDG_STATE_HOME/posdesktop/logs/posdesktop.log` atau `~/.local/state/posdesktop/logs/posdesktop.log`.
+
+API lokal opsional (SQL Server tetap harus aktif):
+
+~~~bash
+export POS_CONNECTION_STRING='Server=localhost;Database=PosDesktop;User ID=sa;Password=GANTI_PASSWORD;Encrypt=true;TrustServerCertificate=true'
+POS_START_LOCAL_API=true ./launch-posdesktop.sh
+~~~
+
+Launcher membatasi API development ke loopback, menunggu `/health`, hanya menghentikan proses yang dimulainya, lalu membuka desktop. Bila API gagal, UI login tetap terbuka.
+
+### Windows
+
+Target Windows x64. Ekstrak ZIP lalu buka `Launch-POS-Desktop.cmd` atau `PosDesktop.exe`. Launcher mendukung folder ber-spasi. Log: `%LOCALAPPDATA%\POS Desktop\Logs\`; konfigurasi: `%APPDATA%\posdesktop\pos-client.json`. Untuk API lokal, set `POS_START_LOCAL_API=1` dan `POS_CONNECTION_STRING` sebelum launcher; connection string dihapus dari environment sebelum aplikasi desktop dibuka.
+
+## Troubleshooting dan batasan
+
+- `XOpenDisplay failed`: buka launcher dari terminal sesi desktop. Wayland memerlukan XWayland dan `DISPLAY`; SSH/headless tanpa X11 forwarding terotorisasi tidak dapat membuka jendela. Jangan mengisi `DISPLAY=:0` secara manual.
+- API tidak terhubung: periksa `POS_API_URL`, file konfigurasi, port/firewall, dan proses PosServer.
+- `DatabaseUnavailable`: periksa SQL Server, `POS_CONNECTION_STRING` pada host API, izin runtime, dan sertifikat SQL.
+- SQL Server tidak disertakan di paket. Siapkan service SQL Server lokal atau gunakan server jaringan.
+
+## Hasil verifikasi run ini
+
+- `dotnet build PosDesktop.slnx -c Release -p:EnableWindowsTargeting=true`: berhasil, 0 warning dan 0 error.
+- Tes client: seluruh 9 pemeriksaan lulus, termasuk health check, login/logout, token, error role, dan koneksi gagal. Tes backend non-SQL lulus. Tes SQL integration dilewati karena `POS_TEST_CONNECTION_STRING` tidak tersedia dan SQL Server lokal/container tidak tersedia.
+- Paket Linux dijalankan hasil ekstraksi dari working directory berbeda dan folder ber-spasi. Jendela login tampil di XWayland aktif dan ditutup lewat WM_DELETE_WINDOW dengan exit code 0. API paket `/health` mengembalikan HTTP 200; login terhadap SQL yang sengaja tidak tersedia mengembalikan HTTP 503. Connection string tidak diwariskan ke proses desktop dan API anak berhenti saat launcher ditutup.
+- Launcher headless/SSH mengeluarkan instruksi display yang jelas dan exit code 2, tanpa crash.
+- TAR/ZIP berhasil dibuat; executable Linux memiliki permission eksekusi dan arsip Windows lolos pemeriksaan CRC. Windows `PosDesktop.exe` cross-publish berhasil dan sempat membuka jendela di Wine dengan prefix sementara. Ini bukan uji native Windows; uji GUI pada komputer Windows tetap diperlukan.
+
+Integrasi transaksi dengan SQL Server sungguhan belum diverifikasi. Karena itu checkout, dashboard berbasis transaksi, dan isolasi riwayat telah tercakup oleh service/test yang ada tetapi bukan hasil uji SQL langsung pada run ini. Lihat `distribution/CROSS-PLATFORM-README.md` untuk petunjuk ringkas yang ikut di tiap paket.
