@@ -8,6 +8,7 @@
     <Project Path="src/PosServer/PosServer.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/PosDesktop.Tests/PosDesktop.Tests.csproj" />
     <Project Path="tests/PosDemo.Tests/PosDemo.Tests.csproj" />
     <Project Path="tests/PosBackend.Tests/PosBackend.Tests.csproj" />
     <Project Path="tests/PosClient.Tests/PosClient.Tests.csproj" />

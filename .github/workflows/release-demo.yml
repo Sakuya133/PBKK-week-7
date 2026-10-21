@@ -18,6 +18,8 @@ jobs:
           dotnet-version: '10.0.x'
       - name: Test demo offline
         run: dotnet run --project tests/PosDemo.Tests -c Release
+      - name: Test harga editor produk
+        run: dotnet run --project tests/PosDesktop.Tests -c Release
       - name: Build Windows and Linux packages
         run: python3 scripts/package_cross_platform.py
       - name: Publish GitHub Release

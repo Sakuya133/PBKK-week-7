@@ -9,4 +9,6 @@ Tidak perlu memasang SQL Server atau menjalankan API. SQLite lokal dan data cont
 
 Login demo: `admin/admin`, `kasir/kasir`, atau `pelanggan/pelanggan`. Tamu dapat memesan tanpa login. Kasir dapat menerima pembayaran atau menolak pesanan di antrean kiosk.
 
+Perbaikan: membuka produk di panel admin lalu menekan Simpan tanpa mengubahnya tidak lagi menaikkan harga.
+
 Data demo disimpan hanya di komputer pengguna dan tidak disinkronkan antar perangkat. Panduan lengkap ada di `README.md` dalam paket.

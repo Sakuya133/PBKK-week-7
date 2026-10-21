@@ -430,10 +430,13 @@ public sealed class MainViewModel : ObservableObject
         if (string.IsNullOrWhiteSpace(ProductName) || ProductName.Trim().Length > 160)
         { ErrorMessage = "Nama produk wajib diisi (maksimal 160 karakter)."; return; }
         if (SelectedCategory is null) { ErrorMessage = "Pilih kategori produk."; return; }
-        if (!decimal.TryParse(ProductPriceInput, NumberStyles.Number, CultureInfo.CurrentCulture, out var price) &&
-            !decimal.TryParse(ProductPriceInput, NumberStyles.Number, CultureInfo.InvariantCulture, out price))
+        if (!ProductPriceText.TryParse(ProductPriceInput, CultureInfo.CurrentCulture, out var price))
         { ErrorMessage = "Harga harus berupa angka."; return; }
         if (price <= 0 || decimal.Round(price, 2) != price) { ErrorMessage = "Harga harus positif dan maksimal dua angka desimal."; return; }
+        if (EditingProductId is int editingId && SelectedProduct?.Id == editingId &&
+            ProductName.Trim() == SelectedProduct.Name && SelectedCategory.Id == SelectedProduct.CategoryId &&
+            price == SelectedProduct.Price && ProductActive == SelectedProduct.IsActive)
+        { SuccessMessage = "Tidak ada perubahan pada produk."; return; }
         IsBusy = true;
         try
         {
@@ -649,7 +652,7 @@ public sealed class MainViewModel : ObservableObject
     {
         EditingProductId = product.Id;
         ProductName = product.Name;
-        ProductPriceInput = product.Price.ToString("0.00", CultureInfo.InvariantCulture);
+        ProductPriceInput = ProductPriceText.Format(product.Price, CultureInfo.CurrentCulture);
         ProductActive = product.IsActive;
         SelectedCategory = Categories.FirstOrDefault(c => c.Id == product.CategoryId);
     }

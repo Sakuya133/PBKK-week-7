@@ -253,7 +253,7 @@
                       <ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name}" /></DataTemplate></ComboBox.ItemTemplate>
                     </ComboBox>
                     <TextBlock Text="Harga" FontWeight="SemiBold" />
-                    <TextBox Text="{Binding ProductPriceInput}" PlaceholderText="Contoh: 12500" />
+                    <TextBox Text="{Binding ProductPriceInput}" PlaceholderText="Contoh: 12500 (tanpa pemisah ribuan)" />
                     <CheckBox Content="Produk aktif" IsChecked="{Binding ProductActive}" />
                     <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
                       <Button Content="Simpan" Classes="primary" Command="{Binding SaveProductCommand}" />
