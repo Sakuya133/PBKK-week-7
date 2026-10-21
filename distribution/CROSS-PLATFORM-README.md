@@ -1,6 +1,6 @@
 # POS Desktop — panduan paket
 
-Paket ini menargetkan **Windows x64** atau **Ubuntu/Linux x64** dan berisi aplikasi Avalonia self-contained, launcher, setup tool, SQL scripts, serta API lokal opsional. SQL Server tidak disertakan dan harus tersedia sebagai service lokal/jaringan.
+Paket ini menargetkan **Windows x64** atau **Ubuntu/Linux x64** dan berisi aplikasi Mikogomi POS Avalonia self-contained, logo Mikogomi, launcher, setup tool, SQL scripts, serta API lokal opsional. SQL Server tidak disertakan dan harus tersedia sebagai service lokal/jaringan.
 
 ## Ubuntu/Linux
 

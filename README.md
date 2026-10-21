@@ -1,6 +1,6 @@
 # POS Desktop
 
-Aplikasi kasir desktop Windows/Linux x64. UI memakai Avalonia dan MVVM sederhana; client desktop memanggil API ASP.NET Core melalui HTTP(S). API memakai ADO.NET dan SQL Server. SQL Server tidak disertakan dalam executable.
+Aplikasi kasir desktop Mikogomi POS untuk Windows/Linux x64. Logo `src/mikogomi.jpeg` dipakai di UI, ikon jendela, executable Windows, dan shortcut; paket membawa PNG/ICO hasil konversi untuk ukuran ikon. UI memakai Avalonia dan MVVM sederhana; client desktop memanggil API ASP.NET Core melalui HTTP(S). API memakai ADO.NET dan SQL Server. SQL Server tidak disertakan dalam executable.
 
 Jendela login tetap terbuka saat API tidak tersedia dan memiliki tombol **Coba hubungkan lagi**. Login, katalog, transaksi, riwayat, dan dashboard perlu API serta database aktif.
 

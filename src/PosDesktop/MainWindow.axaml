@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="PosDesktop.MainWindow"
         Title="Mikogomi POS"
+        Icon="/Assets/mikogomi.ico"
         Width="1280" Height="820" MinWidth="980" MinHeight="650"
         Background="#F3F6FB">
   <Grid>
@@ -9,8 +10,8 @@
     <Grid IsVisible="{Binding IsLogin}"
           ColumnDefinitions="*,460" Margin="36">
       <StackPanel Grid.Column="0" VerticalAlignment="Center" MaxWidth="600" Spacing="18" Margin="10,0,70,0">
-        <Border Width="58" Height="58" CornerRadius="17" Background="#3157D5" HorizontalAlignment="Left">
-          <TextBlock Text="M" FontSize="32" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <Border Width="82" Height="82" CornerRadius="17" Background="White" Padding="3" HorizontalAlignment="Left">
+          <Image Source="/Assets/mikogomi.png" Stretch="Uniform" />
         </Border>
         <TextBlock Text="Mikogomi POS" FontSize="42" FontWeight="Bold" Foreground="#152039" />
         <TextBlock Text="Kelola penjualan, produk, dan riwayat transaksi dalam satu aplikasi." FontSize="18" Foreground="#526079" TextWrapping="Wrap" />
@@ -45,8 +46,8 @@
       <Border Grid.Column="0" Background="#162342" Padding="18">
         <Grid RowDefinitions="Auto,*,Auto">
           <StackPanel Orientation="Horizontal" Spacing="11" Margin="2,4,0,24">
-            <Border Width="38" Height="38" CornerRadius="12" Background="#5375EB">
-              <TextBlock Text="M" FontSize="22" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <Border Width="42" Height="42" CornerRadius="12" Background="White" Padding="1">
+              <Image Source="/Assets/mikogomi.png" Stretch="Uniform" />
             </Border>
             <StackPanel VerticalAlignment="Center" Spacing="1">
               <TextBlock Text="Mikogomi" FontSize="16" FontWeight="Bold" Foreground="White" />

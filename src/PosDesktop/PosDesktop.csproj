@@ -7,8 +7,12 @@
     <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
     <AssemblyName>PosDesktop</AssemblyName>
     <RootNamespace>PosDesktop</RootNamespace>
+    <ApplicationIcon>Assets\mikogomi.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <AvaloniaResource Include="Assets\mikogomi.jpeg" />
+    <AvaloniaResource Include="Assets\mikogomi.png" />
+    <AvaloniaResource Include="Assets\mikogomi.ico" />
     <PackageReference Include="Avalonia" Version="12.1.4" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
