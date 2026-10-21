@@ -17,5 +17,6 @@
     <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
     <ProjectReference Include="..\PosClient\PosClient.csproj" />
+    <ProjectReference Include="..\PosDemo\PosDemo.csproj" />
   </ItemGroup>
 </Project>

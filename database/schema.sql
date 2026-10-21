@@ -109,14 +109,45 @@ BEGIN
         Total decimal(18,2) NOT NULL,
         Status varchar(16) NOT NULL CONSTRAINT DF_GuestOrders_Status DEFAULT ('Menunggu'),
         TransactionId bigint NULL,
+        RejectedAt datetimeoffset(7) NULL,
+        RejectedBy int NULL,
         CONSTRAINT FK_GuestOrders_Transaction FOREIGN KEY (TransactionId) REFERENCES dbo.Transactions(Id),
+        CONSTRAINT FK_GuestOrders_RejectedBy FOREIGN KEY (RejectedBy) REFERENCES dbo.Users(Id),
         CONSTRAINT CK_GuestOrders_Name CHECK (LEN(TRIM(GuestName)) > 0),
         CONSTRAINT CK_GuestOrders_Payment CHECK (PaymentMethod IN ('Tunai','Qris')),
         CONSTRAINT CK_GuestOrders_Total CHECK (Total > 0),
-        CONSTRAINT CK_GuestOrders_Status CHECK (Status IN ('Menunggu','Selesai')),
-        CONSTRAINT CK_GuestOrders_Completed CHECK ((Status='Menunggu' AND TransactionId IS NULL) OR (Status='Selesai' AND TransactionId IS NOT NULL))
+        CONSTRAINT CK_GuestOrders_Status CHECK (Status IN ('Menunggu','Selesai','Ditolak')),
+        CONSTRAINT CK_GuestOrders_Completed CHECK (
+            (Status='Menunggu' AND TransactionId IS NULL AND RejectedAt IS NULL AND RejectedBy IS NULL)
+            OR (Status='Selesai' AND TransactionId IS NOT NULL AND RejectedAt IS NULL AND RejectedBy IS NULL)
+            OR (Status='Ditolak' AND TransactionId IS NULL AND RejectedAt IS NOT NULL AND RejectedBy IS NOT NULL))
     );
     CREATE INDEX IX_GuestOrders_Status_CreatedAt ON dbo.GuestOrders(Status,CreatedAt);
+END;
+GO
+IF OBJECT_ID(N'dbo.GuestOrders', N'U') IS NOT NULL
+BEGIN
+    IF COL_LENGTH(N'dbo.GuestOrders', N'RejectedAt') IS NULL
+        ALTER TABLE dbo.GuestOrders ADD RejectedAt datetimeoffset(7) NULL;
+    IF COL_LENGTH(N'dbo.GuestOrders', N'RejectedBy') IS NULL
+        ALTER TABLE dbo.GuestOrders ADD RejectedBy int NULL;
+END;
+GO
+IF OBJECT_ID(N'dbo.GuestOrders', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE parent_object_id=OBJECT_ID(N'dbo.GuestOrders') AND name=N'FK_GuestOrders_RejectedBy')
+        ALTER TABLE dbo.GuestOrders ADD CONSTRAINT FK_GuestOrders_RejectedBy FOREIGN KEY (RejectedBy) REFERENCES dbo.Users(Id);
+    IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE parent_object_id=OBJECT_ID(N'dbo.GuestOrders') AND name=N'CK_GuestOrders_Status' AND definition NOT LIKE N'%Ditolak%')
+        ALTER TABLE dbo.GuestOrders DROP CONSTRAINT CK_GuestOrders_Status;
+    IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE parent_object_id=OBJECT_ID(N'dbo.GuestOrders') AND name=N'CK_GuestOrders_Status')
+        ALTER TABLE dbo.GuestOrders WITH CHECK ADD CONSTRAINT CK_GuestOrders_Status CHECK (Status IN ('Menunggu','Selesai','Ditolak'));
+    IF EXISTS (SELECT 1 FROM sys.check_constraints WHERE parent_object_id=OBJECT_ID(N'dbo.GuestOrders') AND name=N'CK_GuestOrders_Completed' AND definition NOT LIKE N'%RejectedAt%')
+        ALTER TABLE dbo.GuestOrders DROP CONSTRAINT CK_GuestOrders_Completed;
+    IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE parent_object_id=OBJECT_ID(N'dbo.GuestOrders') AND name=N'CK_GuestOrders_Completed')
+        ALTER TABLE dbo.GuestOrders WITH CHECK ADD CONSTRAINT CK_GuestOrders_Completed CHECK (
+            (Status='Menunggu' AND TransactionId IS NULL AND RejectedAt IS NULL AND RejectedBy IS NULL)
+            OR (Status='Selesai' AND TransactionId IS NOT NULL AND RejectedAt IS NULL AND RejectedBy IS NULL)
+            OR (Status='Ditolak' AND TransactionId IS NULL AND RejectedAt IS NOT NULL AND RejectedBy IS NOT NULL));
 END;
 GO
 IF OBJECT_ID(N'dbo.GuestOrders', N'U') IS NOT NULL

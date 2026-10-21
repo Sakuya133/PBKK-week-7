@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
-Name=Mikogomi POS
-Comment=Aplikasi kasir Mikogomi
+Name=MiKuGoMi POS
+Comment=Aplikasi kasir MiKuGoMi
 Exec=launch-posdesktop.sh
 Icon=mikogomi
 Terminal=false

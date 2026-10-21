@@ -116,6 +116,7 @@ app.MapPost("/api/kiosk/orders", async (GuestOrderRequest input, CancellationTok
     ApiReply.From(await NewServices().Kiosk.PlaceOrderAsync(input, ct))).RequireRateLimiting("guest-orders");
 app.MapGet("/api/kiosk/orders/pending", (HttpContext ctx, CancellationToken ct) => Call(ctx, s => s.Kiosk.GetPendingOrdersAsync(ct)));
 app.MapPost("/api/kiosk/orders/{id:long}/complete", (HttpContext ctx, long id, CancellationToken ct) => Call(ctx, s => s.Kiosk.CompleteOrderAsync(id, ct)));
+app.MapPost("/api/kiosk/orders/{id:long}/reject", (HttpContext ctx, long id, CancellationToken ct) => Call(ctx, s => s.Kiosk.RejectOrderAsync(id, ct)));
 app.MapGet("/api/products/categories", (HttpContext ctx, CancellationToken ct) => Call(ctx, s => s.Products.GetCategoriesAsync(ct)));
 app.MapGet("/api/products", (HttpContext ctx, CancellationToken ct) => Call(ctx, s => s.Products.GetAllAsync(ct)));
 app.MapPost("/api/products", (HttpContext ctx, ProductInput input, CancellationToken ct) => Call(ctx, s => s.Products.CreateAsync(input, ct)));

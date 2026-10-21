@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish and package the POS Desktop client and optional local API for Linux/Windows x64."""
+"""Publish self-contained offline demo packages for Linux/Windows x64."""
 
 from __future__ import annotations
 
@@ -42,17 +42,8 @@ def prepare_package(stage: Path, rid: str, display_name: str) -> Path:
     package.mkdir(parents=True)
     work = stage / f"publish-{rid}"
     client = work / "client"
-    server = work / "server"
-    setup = work / "setup"
     publish("src/PosDesktop/PosDesktop.csproj", rid, client)
-    publish("src/PosServer/PosServer.csproj", rid, server)
-    publish("tools/PosSetup/PosSetup.csproj", rid, setup)
     copy_runtime_contents(client, package)
-    copy_runtime_contents(server, package / "LocalApi")
-    copy_runtime_contents(setup, package / "Setup")
-
-    shutil.copytree(ROOT / "database", package / "Database")
-    shutil.copytree(ROOT / "Configuration", package / "Configuration")
     logo_assets = ROOT / "src/PosDesktop/Assets"
     if logo_assets.is_dir():
         shutil.copytree(logo_assets, package / "Assets")
@@ -63,8 +54,7 @@ def prepare_package(stage: Path, rid: str, display_name: str) -> Path:
         shutil.copy2(ROOT / "distribution/linux/launch-posdesktop.sh", package / "launch-posdesktop.sh")
         shutil.copy2(ROOT / "distribution/linux/install-desktop.sh", package / "install-desktop.sh")
         shutil.copy2(ROOT / "distribution/linux/posdesktop.desktop", package / "posdesktop.desktop")
-        for script in (package / "PosDesktop", package / "LocalApi/PosServer", package / "Setup/PosSetup",
-                       package / "launch-posdesktop.sh", package / "install-desktop.sh"):
+        for script in (package / "PosDesktop", package / "launch-posdesktop.sh", package / "install-desktop.sh"):
             if script.exists():
                 script.chmod(script.stat().st_mode | 0o111)
     else:

@@ -35,6 +35,9 @@ try
         [new CheckoutItem(1, 2)], Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc")));
     Check(guestOrder.Success && guestOrder.Value?.GuestName == "Budi" && handler.GuestOrderSeen,
         "pesanan tamu dikirim tanpa bearer dan nama pemesan diterima");
+    var rejection = await services.Kiosk.RejectOrderAsync(8);
+    Check(rejection.Success && rejection.Value && handler.RejectSeen,
+        "penolakan pesanan dikirim dengan bearer kasir");
     var denied = await services.Dashboard.GetTodayAsync();
     Check(denied.Error == ErrorCode.Forbidden, "error role server diteruskan");
     var logout = await services.Auth.LogoutAsync();
@@ -63,6 +66,7 @@ sealed class FakeHandler(string token) : HttpMessageHandler
     public bool HealthSeen { get; private set; }
     public bool PublicKioskCatalogSeen { get; private set; }
     public bool GuestOrderSeen { get; private set; }
+    public bool RejectSeen { get; private set; }
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var path = request.RequestUri!.AbsolutePath;
@@ -91,6 +95,11 @@ sealed class FakeHandler(string token) : HttpMessageHandler
             using var body = JsonDocument.Parse(request.Content!.ReadAsStringAsync(cancellationToken).GetAwaiter().GetResult());
             GuestOrderSeen = body.RootElement.GetProperty("guestName").GetString() == "Budi";
             return Reply(HttpStatusCode.OK, """{"success":true,"value":{"id":8,"number":"ORD-TEST","guestName":"Budi","createdAt":"2026-01-01T00:00:00+00:00","paymentMethod":"Qris","total":25000,"items":[{"productId":1,"productName":"Kopi","unitPrice":12500,"quantity":2,"subtotal":25000}]},"error":"None","message":"OK"}""");
+        }
+        if (path == "/api/kiosk/orders/8/reject" && bearer == token && request.Method == HttpMethod.Post)
+        {
+            RejectSeen = true;
+            return Reply(HttpStatusCode.OK, """{"success":true,"value":true,"error":"None","message":"OK"}""");
         }
         if (path == "/api/dashboard/today" && bearer == token)
             return Reply(HttpStatusCode.Forbidden, """{"success":false,"value":null,"error":"Forbidden","message":"Akses ditolak."}""");

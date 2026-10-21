@@ -141,7 +141,7 @@ internal sealed class KioskService(Database db, Session session) : IKioskService
                     number = reader.GetString(0); requestId = reader.GetGuid(1); guestName = reader.GetString(2);
                     createdAt = reader.GetDateTimeOffset(3); payment = Enum.Parse<PaymentMethod>(reader.GetString(4));
                     total = reader.GetDecimal(5);
-                    Guard.That(reader.GetString(6) == "Menunggu", ErrorCode.Conflict, "Pesanan ini sudah dikonfirmasi.");
+                    Guard.That(reader.GetString(6) == "Menunggu", ErrorCode.Conflict, "Pesanan sudah diproses dan tidak dapat dikonfirmasi.");
                 }
                 var items = new List<TransactionItemDto>();
                 await using (var command = new SqlCommand(
@@ -171,6 +171,45 @@ internal sealed class KioskService(Database db, Session session) : IKioskService
                 await transaction.CommitAsync(cancellationToken);
                 return new TransactionDto(transactionId, number.Replace("ORD-", "TRX-", StringComparison.Ordinal),
                     cashier.Id, cashier.FullName, null, guestName, transactionCreatedAt, payment, total, items);
+            }
+            catch
+            {
+                try { await transaction.RollbackAsync(CancellationToken.None); } catch { /* original error wins */ }
+                throw;
+            }
+        });
+
+    public Task<ServiceResult<bool>> RejectOrderAsync(long id, CancellationToken cancellationToken = default)
+        => Execute.Run(async () =>
+        {
+            var cashier = await session.RequireAsync(db, cancellationToken, UserRole.Kasir);
+            Guard.That(id > 0, ErrorCode.Validation, "Id pesanan tidak valid.");
+            await using var connection = await db.OpenAsync(cancellationToken);
+            await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
+            try
+            {
+                Guard.That(await UserRepository.IsActiveCashierAsync(connection, transaction, cashier.Id, cancellationToken),
+                    ErrorCode.Unauthorized, "Sesi kasir tidak aktif. Silakan login kembali.");
+                await using (var command = new SqlCommand(
+                    "SELECT Status FROM dbo.GuestOrders WITH (UPDLOCK,HOLDLOCK) WHERE Id=@id", connection, transaction))
+                {
+                    command.Parameters.Add("@id", SqlDbType.BigInt).Value = id;
+                    var status = await command.ExecuteScalarAsync(cancellationToken);
+                    Guard.That(status is not null, ErrorCode.NotFound, "Pesanan tidak ditemukan.");
+                    Guard.That((string)status! == "Menunggu", ErrorCode.Conflict,
+                        "Pesanan sudah diproses dan tidak dapat ditolak.");
+                }
+                await using (var command = new SqlCommand(
+                    "UPDATE dbo.GuestOrders SET Status='Ditolak',RejectedAt=TODATETIMEOFFSET(SYSUTCDATETIME(), '+00:00'),RejectedBy=@cashier " +
+                    "WHERE Id=@id AND Status='Menunggu'", connection, transaction))
+                {
+                    command.Parameters.Add("@id", SqlDbType.BigInt).Value = id;
+                    command.Parameters.Add("@cashier", SqlDbType.Int).Value = cashier.Id;
+                    Guard.That(await command.ExecuteNonQueryAsync(cancellationToken) == 1,
+                        ErrorCode.Conflict, "Pesanan sudah diproses oleh kasir lain.");
+                }
+                await transaction.CommitAsync(cancellationToken);
+                return true;
             }
             catch
             {

@@ -7,7 +7,7 @@ using PosBackend;
 namespace PosClient;
 
 /// <summary>Client HTTP untuk ViewModel desktop. Simpan instance ini selama satu sesi aplikasi.</summary>
-public sealed class PosRemoteServices : IAuthService, IProductService, ITransactionService, IDashboardService, IKioskService, IDisposable
+public sealed class PosRemoteServices : IPosAppServices, IAuthService, IProductService, ITransactionService, IDashboardService, IKioskService
 {
     private readonly HttpClient _http;
     private readonly bool _ownsClient;
@@ -119,6 +119,8 @@ public sealed class PosRemoteServices : IAuthService, IProductService, ITransact
         SendAsync<IReadOnlyList<GuestOrderDto>>(HttpMethod.Get, "api/kiosk/orders/pending", null, true, ct);
     Task<ServiceResult<TransactionDto>> IKioskService.CompleteOrderAsync(long id, CancellationToken ct) =>
         SendAsync<TransactionDto>(HttpMethod.Post, $"api/kiosk/orders/{id}/complete", null, true, ct);
+    Task<ServiceResult<bool>> IKioskService.RejectOrderAsync(long id, CancellationToken ct) =>
+        SendAsync<bool>(HttpMethod.Post, $"api/kiosk/orders/{id}/reject", null, true, ct);
 
     private async Task<ServiceResult<T>> SendAsync<T>(HttpMethod method, string path, object? body, bool authenticated, CancellationToken ct)
     {

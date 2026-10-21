@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="PosDesktop.MainWindow"
-        Title="Mikogomi POS"
+        Title="MiKuGoMi POS"
         Icon="/Assets/mikogomi.ico"
         Width="1280" Height="820" MinWidth="980" MinHeight="650"
         Background="#F3F6FB">
@@ -13,11 +13,11 @@
         <Border Width="82" Height="82" CornerRadius="17" Background="White" Padding="3" HorizontalAlignment="Left">
           <Image Source="/Assets/mikogomi.png" Stretch="Uniform" />
         </Border>
-        <TextBlock Text="Mikogomi POS" FontSize="42" FontWeight="Bold" Foreground="#152039" />
+        <TextBlock Text="MiKuGoMi POS" FontSize="42" FontWeight="Bold" Foreground="#152039" />
         <TextBlock Text="Kelola penjualan, produk, dan riwayat transaksi dalam satu aplikasi." FontSize="18" Foreground="#526079" TextWrapping="Wrap" />
         <Border Background="White" BorderBrush="#E0E7F0" BorderThickness="1" CornerRadius="14" Padding="18" Margin="0,16,0,0">
           <StackPanel Spacing="8">
-            <TextBlock Text="Koneksi aplikasi" FontWeight="SemiBold" Foreground="#26324A" />
+            <TextBlock Text="Status aplikasi" FontWeight="SemiBold" Foreground="#26324A" />
             <TextBlock Text="{Binding ApiStatus}" Foreground="#526079" TextWrapping="Wrap" />
             <TextBlock Text="{Binding ConfigurationWarning}" Foreground="#A45B13" TextWrapping="Wrap" IsVisible="{Binding HasConfigurationWarning}" />
             <Button Content="Coba hubungkan lagi" Command="{Binding RetryApiCommand}" HorizontalAlignment="Left" Padding="12,7" />
@@ -28,6 +28,7 @@
         <StackPanel Spacing="15">
           <TextBlock Text="Masuk" Classes="page-title" />
           <TextBlock Text="Gunakan akun Admin, Kasir, atau Pelanggan." Classes="muted" Margin="0,0,0,12" />
+          <TextBlock Text="Demo offline: admin/admin · kasir/kasir · pelanggan/pelanggan" Classes="muted" TextWrapping="Wrap" IsVisible="{Binding IsOfflineDemo}" />
           <TextBlock Text="Username" FontWeight="SemiBold" />
           <TextBox Text="{Binding Username}" PlaceholderText="Username" MinHeight="42" />
           <TextBlock Text="Password" FontWeight="SemiBold" Margin="0,4,0,0" />
@@ -36,7 +37,7 @@
           <TextBlock Text="Sedang memeriksa koneksi atau memproses login…" Foreground="#526079" IsVisible="{Binding IsBusy}" />
           <TextBlock Text="{Binding ErrorMessage}" Foreground="#B42318" TextWrapping="Wrap" IsVisible="{Binding HasError}" />
           <TextBlock Text="{Binding SuccessMessage}" Foreground="#138A62" TextWrapping="Wrap" IsVisible="{Binding HasSuccess}" />
-          <StackPanel Spacing="2"><TextBlock Text="API yang dipakai" FontSize="12" Foreground="#77839A" /><TextBlock Text="{Binding ApiUrl}" FontSize="12" Foreground="#77839A" TextWrapping="Wrap" /></StackPanel>
+          <StackPanel Spacing="2"><TextBlock Text="Mode aplikasi" FontSize="12" Foreground="#77839A" /><TextBlock Text="{Binding ApiUrl}" FontSize="12" Foreground="#77839A" TextWrapping="Wrap" /></StackPanel>
           <Border Height="1" Background="#E4E9F1" Margin="0,4" />
           <TextBlock Text="Langsung pesan tanpa akun" FontWeight="SemiBold" Foreground="#26324A" />
           <Button Content="Mulai pesan sebagai tamu" Classes="primary" Command="{Binding BeginGuestOrderingCommand}" MinHeight="44" />
@@ -52,7 +53,7 @@
             <Image Source="/Assets/mikogomi.png" Stretch="Uniform" />
           </Border>
           <StackPanel VerticalAlignment="Center" Spacing="2">
-            <TextBlock Text="Pesan di Mikogomi" Classes="page-title" FontSize="25" />
+            <TextBlock Text="Pesan di MiKuGoMi" Classes="page-title" FontSize="25" />
             <TextBlock Text="Pilih menu, isi nama, lalu ambil nomor pesanan di kasir." Classes="muted" />
             <TextBlock Text="{Binding BusyLabel}" Classes="muted" IsVisible="{Binding IsBusy}" />
           </StackPanel>
@@ -145,7 +146,7 @@
               <Image Source="/Assets/mikogomi.png" Stretch="Uniform" />
             </Border>
             <StackPanel VerticalAlignment="Center" Spacing="1">
-              <TextBlock Text="Mikogomi" FontSize="16" FontWeight="Bold" Foreground="White" />
+              <TextBlock Text="MiKuGoMi" FontSize="16" FontWeight="Bold" Foreground="White" />
               <TextBlock Text="POINT OF SALE" FontSize="10" Foreground="#AAB7D4" />
             </StackPanel>
           </StackPanel>
@@ -311,6 +312,7 @@
                       </DataTemplate></ItemsControl.ItemTemplate>
                     </ItemsControl>
                     <Button Content="Pembayaran diterima · simpan transaksi" Command="{Binding CompleteGuestOrderCommand}" />
+                    <Button Content="Tolak pesanan" Command="{Binding BeginRejectGuestOrderCommand}" />
                     <Border Height="1" Background="#E4E9F1" Margin="0,4" />
                     <TextBlock Text="Keranjang" Classes="section-title" />
                     <TextBlock Text="Keranjang masih kosong." Classes="muted" IsVisible="{Binding CartIsEmpty}" />
@@ -409,7 +411,7 @@
                     <TextBlock Text="{Binding SelectedTransactionTitle}" FontWeight="SemiBold" TextWrapping="Wrap" />
                     <TextBlock Text="{Binding TransactionCashierText}" Classes="muted" />
                     <TextBlock Text="{Binding TransactionCustomerText}" Classes="muted" />
-                    <TextBlock Text="Pembayaran: {Binding SelectedTransactionPayment}" Classes="muted" />
+                    <TextBlock Text="{Binding SelectedTransactionPayment, StringFormat='{}Pembayaran: {0}'}" Classes="muted" />
                     <ItemsControl ItemsSource="{Binding TransactionDetail.Items}">
                       <ItemsControl.ItemTemplate><DataTemplate>
                         <Grid ColumnDefinitions="*,Auto" Margin="0,5">
@@ -442,13 +444,29 @@
             <StackPanel Spacing="5">
               <TextBlock Text="{Binding SelectedPaymentLabel}" FontWeight="SemiBold" />
               <TextBlock Text="{Binding SelectedCustomerLabel}" />
-              <TextBlock Text="Jumlah item: {Binding CartCount}" />
-              <TextBlock Text="Total: {Binding CartTotalText}" FontSize="20" FontWeight="Bold" Foreground="#3157D5" />
+              <TextBlock Text="{Binding CartCount, StringFormat='{}Jumlah item: {0}'}" />
+              <TextBlock Text="{Binding CartTotalText, StringFormat='{}Total: {0}'}" FontSize="20" FontWeight="Bold" Foreground="#3157D5" />
             </StackPanel>
           </Border>
           <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
             <Button Content="Kembali" Command="{Binding CancelCheckoutCommand}" />
             <Button Content="Pembayaran diterima · Simpan" Classes="primary" Command="{Binding ConfirmCheckoutCommand}" />
+          </StackPanel>
+          <TextBlock Text="{Binding ErrorMessage}" Foreground="#B42318" TextWrapping="Wrap" IsVisible="{Binding HasError}" />
+        </StackPanel>
+      </Border>
+    </Border>
+    <Border IsVisible="{Binding ShowRejectGuestOrderConfirmation}" Background="#880E172A" Padding="24">
+      <Border Background="White" CornerRadius="18" Padding="28" MaxWidth="480" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <StackPanel Spacing="14">
+          <TextBlock Text="Tolak pesanan tamu?" Classes="page-title" FontSize="23" />
+          <TextBlock Text="Pesanan akan keluar dari antrean dan tidak dicatat sebagai transaksi penjualan." Foreground="#526079" TextWrapping="Wrap" />
+          <Border Background="#F3F6FB" CornerRadius="10" Padding="14">
+            <TextBlock Text="{Binding GuestOrderToRejectTitle}" TextWrapping="Wrap" FontWeight="SemiBold" />
+          </Border>
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <Button Content="Batal" Command="{Binding CancelRejectGuestOrderCommand}" />
+            <Button Content="Ya, tolak pesanan" Command="{Binding ConfirmRejectGuestOrderCommand}" />
           </StackPanel>
           <TextBlock Text="{Binding ErrorMessage}" Foreground="#B42318" TextWrapping="Wrap" IsVisible="{Binding HasError}" />
         </StackPanel>

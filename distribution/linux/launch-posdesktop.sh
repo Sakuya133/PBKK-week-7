@@ -41,45 +41,8 @@ if command -v xdpyinfo >/dev/null 2>&1 && ! xdpyinfo -display "$DISPLAY" >/dev/n
   exit 2
 fi
 
-api_pid=""
-cleanup() {
-  if [[ -n "$api_pid" ]] && kill -0 "$api_pid" 2>/dev/null; then
-    kill "$api_pid" 2>/dev/null || true
-    wait "$api_pid" 2>/dev/null || true
-  fi
-}
-trap cleanup EXIT INT TERM
-
-if [[ "${POS_START_LOCAL_API:-false}" == "true" ]]; then
-  api_url="${POS_LOCAL_API_URL:-http://127.0.0.1:5077/}"
-  if curl --silent --show-error --max-time 1 --fail "${api_url%/}/health" >/dev/null 2>&1; then
-    echo "API lokal sudah aktif di $api_url; tidak akan dihentikan oleh launcher." | tee -a "$LOG_FILE"
-  elif [[ -z "${POS_CONNECTION_STRING:-}" ]]; then
-    echo "POS_CONNECTION_STRING belum diatur; API lokal tidak dimulai. Login tetap dapat dibuka." | tee -a "$LOG_FILE" >&2
-  elif [[ -x "$APP_DIR/LocalApi/PosServer" ]]; then
-    (
-      cd "$APP_DIR/LocalApi"
-      export ASPNETCORE_ENVIRONMENT=Development
-      export POS_API_ALLOW_HTTP_DEV=true
-      export ASPNETCORE_URLS="$api_url"
-      exec ./PosServer
-    ) >>"$LOG_FILE" 2>&1 &
-    api_pid=$!
-    export POS_API_URL="$api_url"
-    ready=false
-    for _ in $(seq 1 30); do
-      if curl --silent --max-time 1 --fail "${api_url%/}/health" >/dev/null 2>&1; then ready=true; break; fi
-      if ! kill -0 "$api_pid" 2>/dev/null; then break; fi
-      sleep 1
-    done
-    if [[ "$ready" != true ]]; then
-      echo "API lokal tidak siap di $api_url; login tetap dapat dibuka untuk menampilkan status koneksi." | tee -a "$LOG_FILE" >&2
-    fi
-  else
-    echo "Paket LocalApi/PosServer tidak ditemukan; login tetap dapat dibuka." | tee -a "$LOG_FILE" >&2
-  fi
-fi
 unset POS_CONNECTION_STRING
+export POS_DESKTOP_MODE=offline
 
 echo "Menjalankan POS Desktop dari $APP_DIR" | tee -a "$LOG_FILE"
 cd "$APP_DIR"

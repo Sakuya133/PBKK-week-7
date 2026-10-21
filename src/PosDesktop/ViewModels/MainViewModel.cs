@@ -7,8 +7,10 @@ namespace PosDesktop.ViewModels;
 
 public sealed class MainViewModel : ObservableObject
 {
-    private readonly PosRemoteServices _services;
-    private readonly ClientConfiguration _configuration;
+    private readonly IPosAppServices _services;
+    private readonly string _connectionLabel;
+    private readonly string? _configurationWarning;
+    private readonly bool _offlineDemo;
     private readonly List<AsyncRelayCommand> _busyCommands = [];
     private UserDto? _currentUser;
     private bool _isBusy;
@@ -32,18 +34,23 @@ public sealed class MainViewModel : ObservableObject
     private TransactionDto? _transactionDetail;
     private DailySalesDto? _dailySales;
     private bool _showCheckoutConfirmation;
+    private bool _showRejectGuestOrderConfirmation;
     private Guid? _pendingRequestId;
     private bool _isGuestOrdering;
     private bool _guestOrderComplete;
     private string _guestName = "";
     private string _guestOrderNumber = "";
     private GuestOrderDto? _selectedGuestOrder;
+    private GuestOrderDto? _guestOrderToReject;
     private GuestOrderRequest? _pendingGuestOrderRequest;
 
-    public MainViewModel(PosRemoteServices services, ClientConfiguration configuration)
+    public MainViewModel(IPosAppServices services, string connectionLabel, bool offlineDemo = false,
+        string? configurationWarning = null)
     {
         _services = services;
-        _configuration = configuration;
+        _connectionLabel = connectionLabel;
+        _offlineDemo = offlineDemo;
+        _configurationWarning = configurationWarning;
         _selectedPayment = PaymentChoices[0];
         LoginCommand = Command(LoginAsync);
         BeginGuestOrderingCommand = Command(BeginGuestOrderingAsync);
@@ -68,11 +75,17 @@ public sealed class MainViewModel : ObservableObject
         CompleteGuestOrderCommand = new AsyncRelayCommand(CompleteGuestOrderAsync,
             _ => SelectedGuestOrder is not null && !IsBusy,
             ex => ErrorMessage = $"Gagal mengonfirmasi pesanan: {ex.Message}");
+        BeginRejectGuestOrderCommand = new RelayCommand(_ => BeginRejectGuestOrder(),
+            _ => SelectedGuestOrder is not null && !IsBusy);
+        CancelRejectGuestOrderCommand = new RelayCommand(_ => CancelRejectGuestOrder(), _ => !IsBusy);
+        ConfirmRejectGuestOrderCommand = new AsyncRelayCommand(ConfirmRejectGuestOrderAsync,
+            _ => ShowRejectGuestOrderConfirmation && _guestOrderToReject is not null && !IsBusy,
+            ex => ErrorMessage = $"Gagal menolak pesanan: {ex.Message}");
         ApplyProductSearchCommand = new RelayCommand(_ => Changed(nameof(FilteredProducts)));
 
         _busyCommands.AddRange([LoginCommand, BeginGuestOrderingCommand, SubmitGuestOrderCommand, RetryApiCommand,
             LogoutCommand, NavigateCommand, RefreshCommand, SaveProductCommand, DeactivateProductCommand,
-            ConfirmCheckoutCommand, LoadTransactionDetailCommand, CompleteGuestOrderCommand]);
+            ConfirmCheckoutCommand, LoadTransactionDetailCommand, CompleteGuestOrderCommand, ConfirmRejectGuestOrderCommand]);
         Cart.CollectionChanged += (_, _) => { Changed(nameof(CartTotalText)); Changed(nameof(CartCount)); Changed(nameof(CartIsEmpty)); BeginCheckoutCommand.RaiseCanExecuteChanged(); };
         Products.CollectionChanged += (_, _) => { Changed(nameof(FilteredProducts)); Changed(nameof(FilteredProductsEmpty)); };
         Transactions.CollectionChanged += (_, _) => Changed(nameof(TransactionsEmpty));
@@ -110,6 +123,9 @@ public sealed class MainViewModel : ObservableObject
     public RelayCommand CancelCheckoutCommand { get; }
     public AsyncRelayCommand LoadTransactionDetailCommand { get; }
     public AsyncRelayCommand CompleteGuestOrderCommand { get; }
+    public RelayCommand BeginRejectGuestOrderCommand { get; }
+    public RelayCommand CancelRejectGuestOrderCommand { get; }
+    public AsyncRelayCommand ConfirmRejectGuestOrderCommand { get; }
     public RelayCommand ApplyProductSearchCommand { get; }
 
     public UserDto? CurrentUser { get => _currentUser; private set { if (Set(ref _currentUser, value)) { Changed(nameof(IsLoggedIn)); Changed(nameof(IsLogin)); Changed(nameof(IsAdmin)); Changed(nameof(IsCashier)); Changed(nameof(IsCustomer)); Changed(nameof(CurrentUserSummary)); } } }
@@ -124,7 +140,7 @@ public sealed class MainViewModel : ObservableObject
     public bool IsCashier => CurrentUser?.Role == UserRole.Kasir;
     public bool IsCustomer => CurrentUser?.Role == UserRole.Pelanggan;
     public string CurrentUserSummary => CurrentUser is null ? "" : $"{CurrentUser.FullName} · {CurrentUser.Role}";
-    public bool IsBusy { get => _isBusy; private set { if (Set(ref _isBusy, value)) { Changed(nameof(BusyLabel)); foreach (var command in _busyCommands) command.RaiseCanExecuteChanged(); foreach (var item in NavigationItems) if (item.Command is AsyncRelayCommand command) command.RaiseCanExecuteChanged(); BeginCheckoutCommand.RaiseCanExecuteChanged(); } } }
+    public bool IsBusy { get => _isBusy; private set { if (Set(ref _isBusy, value)) { Changed(nameof(BusyLabel)); foreach (var command in _busyCommands) command.RaiseCanExecuteChanged(); foreach (var item in NavigationItems) if (item.Command is AsyncRelayCommand command) command.RaiseCanExecuteChanged(); BeginCheckoutCommand.RaiseCanExecuteChanged(); BeginRejectGuestOrderCommand.RaiseCanExecuteChanged(); CancelRejectGuestOrderCommand.RaiseCanExecuteChanged(); } } }
     public string BusyLabel => IsBusy ? "Sedang memuat atau menyimpan…" : "";
     public bool ApiAvailable { get => _apiAvailable; private set { if (Set(ref _apiAvailable, value)) Changed(nameof(ApiStatusColor)); } }
     public string ApiStatus { get => _apiStatus; private set => Set(ref _apiStatus, value); }
@@ -136,8 +152,9 @@ public sealed class MainViewModel : ObservableObject
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
     public bool HasSuccess => !string.IsNullOrWhiteSpace(SuccessMessage);
     public bool HasConfigurationWarning => !string.IsNullOrWhiteSpace(ConfigurationWarning);
-    public string ApiUrl => _configuration.ApiBaseAddress.ToString();
-    public string? ConfigurationWarning => _configuration.Warning;
+    public string ApiUrl => _connectionLabel;
+    public bool IsOfflineDemo => _offlineDemo;
+    public string? ConfigurationWarning => _configurationWarning;
     public string CurrentPage { get => _currentPage; private set { if (Set(ref _currentPage, value)) { Changed(nameof(PageTitle)); Changed(nameof(IsDashboardPage)); Changed(nameof(IsProductsPage)); Changed(nameof(IsCashierPage)); Changed(nameof(IsHistoryPage)); Changed(nameof(IsCatalogPage)); } } }
     public string PageTitle => CurrentPage switch { "Dashboard" => "Dashboard", "Products" => "Produk", "Cashier" => "Kasir", "History" => "Riwayat transaksi", "Catalog" => "Katalog produk", _ => "POS Desktop" };
     public bool IsDashboardPage => CurrentPage == "Dashboard";
@@ -157,7 +174,7 @@ public sealed class MainViewModel : ObservableObject
     public bool SelectedProductIsNull => SelectedProduct is null;
     public CustomerChoice? SelectedCustomer { get => _selectedCustomer; set { if (Set(ref _selectedCustomer, value)) Changed(nameof(SelectedCustomerLabel)); } }
     public PaymentChoice SelectedPayment { get => _selectedPayment; set { if (Set(ref _selectedPayment, value)) Changed(nameof(SelectedPaymentLabel)); } }
-    public GuestOrderDto? SelectedGuestOrder { get => _selectedGuestOrder; set { if (Set(ref _selectedGuestOrder, value)) { Changed(nameof(SelectedGuestOrderTitle)); CompleteGuestOrderCommand.RaiseCanExecuteChanged(); } } }
+    public GuestOrderDto? SelectedGuestOrder { get => _selectedGuestOrder; set { if (Set(ref _selectedGuestOrder, value)) { Changed(nameof(SelectedGuestOrderTitle)); CompleteGuestOrderCommand.RaiseCanExecuteChanged(); BeginRejectGuestOrderCommand.RaiseCanExecuteChanged(); } } }
     public TransactionSummaryDto? SelectedTransaction { get => _selectedTransaction; set { if (Set(ref _selectedTransaction, value)) { Changed(nameof(HasSelectedTransaction)); Changed(nameof(SelectedTransactionTitle)); } } }
     public TransactionDto? TransactionDetail { get => _transactionDetail; private set { if (Set(ref _transactionDetail, value)) { Changed(nameof(TransactionDetailIsNull)); Changed(nameof(TransactionCashierText)); Changed(nameof(TransactionCustomerText)); Changed(nameof(SelectedTransactionTitle)); } } }
     public bool TransactionDetailIsNull => TransactionDetail is null;
@@ -168,6 +185,7 @@ public sealed class MainViewModel : ObservableObject
     public string RevenueText => (DailySales?.Revenue ?? 0m).ToString("C0", CultureInfo.GetCultureInfo("id-ID"));
     public string TransactionCountText => (DailySales?.TransactionCount ?? 0).ToString("N0", CultureInfo.GetCultureInfo("id-ID"));
     public bool ShowCheckoutConfirmation { get => _showCheckoutConfirmation; set => Set(ref _showCheckoutConfirmation, value); }
+    public bool ShowRejectGuestOrderConfirmation { get => _showRejectGuestOrderConfirmation; private set { if (Set(ref _showRejectGuestOrderConfirmation, value)) ConfirmRejectGuestOrderCommand.RaiseCanExecuteChanged(); } }
     public string CartTotalText => Cart.Sum(line => line.Subtotal).ToString("C0", CultureInfo.GetCultureInfo("id-ID"));
     public int CartCount => Cart.Sum(line => line.Quantity);
     public bool CartIsEmpty => Cart.Count == 0;
@@ -181,6 +199,8 @@ public sealed class MainViewModel : ObservableObject
     public string SelectedCustomerLabel => $"Pelanggan: {SelectedCustomer?.Name ?? "Umum"}";
     public string SelectedGuestOrderTitle => SelectedGuestOrder is null ? "Pilih pesanan dari antrean." :
         $"{SelectedGuestOrder.Number} · {SelectedGuestOrder.GuestName} · {SelectedGuestOrder.PaymentMethod} · {SelectedGuestOrder.Total.ToString("C0", CultureInfo.GetCultureInfo("id-ID"))}";
+    public string GuestOrderToRejectTitle => _guestOrderToReject is null ? "" :
+        $"{_guestOrderToReject.Number} · {_guestOrderToReject.GuestName} · {_guestOrderToReject.Total.ToString("C0", CultureInfo.GetCultureInfo("id-ID"))}";
     public IEnumerable<ProductDto> FilteredProducts => string.IsNullOrWhiteSpace(ProductSearch) ? Products :
         Products.Where(p => p.Name.Contains(ProductSearch, StringComparison.CurrentCultureIgnoreCase) || p.CategoryName.Contains(ProductSearch, StringComparison.CurrentCultureIgnoreCase));
     public bool FilteredProductsEmpty => !FilteredProducts.Any();
@@ -195,11 +215,13 @@ public sealed class MainViewModel : ObservableObject
 
     private async Task CheckApiAsync(object? _)
     {
-        ApiStatus = "Memeriksa API…";
+        ApiStatus = _offlineDemo ? "Menyiapkan demo offline…" : "Memeriksa API…";
         var health = await _services.CheckHealthAsync();
         ApiAvailable = health.Success;
-        ApiStatus = health.Success ? $"API terhubung · {ApiUrl}" : $"API belum terhubung · {ApiUrl}";
-        if (!health.Success && !HasError) ErrorMessage = "API tidak tersedia. Jendela login tetap dapat digunakan; coba lagi setelah API aktif.";
+        ApiStatus = _offlineDemo
+            ? health.Success ? "Demo offline siap · database lokal" : "Database demo belum siap"
+            : health.Success ? $"API terhubung · {ApiUrl}" : $"API belum terhubung · {ApiUrl}";
+        if (!health.Success && !HasError) ErrorMessage = health.Message;
         else if (health.Success && ErrorMessage.Contains("API tidak tersedia", StringComparison.OrdinalIgnoreCase)) ErrorMessage = "";
     }
 
@@ -221,7 +243,7 @@ public sealed class MainViewModel : ObservableObject
             CurrentUser = result.Value;
             Password = "";
             ApiAvailable = true;
-            ApiStatus = $"API terhubung · {ApiUrl}";
+            ApiStatus = _offlineDemo ? "Demo offline siap · database lokal" : $"API terhubung · {ApiUrl}";
             ConfigureNavigation();
             if (IsAdmin) await LoadDashboardAsync();
             else if (IsCashier) await LoadCashierAsync();
@@ -249,7 +271,7 @@ public sealed class MainViewModel : ObservableObject
             Products.Clear();
             foreach (var product in result.Value ?? []) Products.Add(product);
             ApiAvailable = true;
-            ApiStatus = $"Menu tersedia · {ApiUrl}";
+            ApiStatus = _offlineDemo ? "Menu demo offline tersedia" : $"Menu tersedia · {ApiUrl}";
         }
         finally { IsBusy = false; }
     }
@@ -556,6 +578,54 @@ public sealed class MainViewModel : ObservableObject
         finally { IsBusy = false; }
     }
 
+    private void BeginRejectGuestOrder()
+    {
+        if (SelectedGuestOrder is null || IsBusy) return;
+        ClearMessages();
+        _guestOrderToReject = SelectedGuestOrder;
+        Changed(nameof(GuestOrderToRejectTitle));
+        ShowRejectGuestOrderConfirmation = true;
+    }
+
+    private void CancelRejectGuestOrder()
+    {
+        if (IsBusy) return;
+        ShowRejectGuestOrderConfirmation = false;
+        _guestOrderToReject = null;
+        Changed(nameof(GuestOrderToRejectTitle));
+    }
+
+    private async Task ConfirmRejectGuestOrderAsync(object? _)
+    {
+        if (_guestOrderToReject is null || !ShowRejectGuestOrderConfirmation) return;
+        ClearMessages();
+        var order = _guestOrderToReject;
+        IsBusy = true;
+        try
+        {
+            var result = await _services.Kiosk.RejectOrderAsync(order.Id);
+            if (!result.Success || result.Value != true)
+            {
+                ErrorMessage = result.Message;
+                if (result.Error == ErrorCode.ServiceUnavailable) MarkApiUnavailable();
+                return;
+            }
+            ShowRejectGuestOrderConfirmation = false;
+            _guestOrderToReject = null;
+            Changed(nameof(GuestOrderToRejectTitle));
+            var pending = await _services.Kiosk.GetPendingOrdersAsync();
+            if (pending.Success)
+            {
+                PendingGuestOrders.Clear();
+                foreach (var item in pending.Value ?? []) PendingGuestOrders.Add(item);
+            }
+            else ErrorMessage = $"Pesanan ditolak, tetapi antrean gagal dimuat ulang: {pending.Message}";
+            SelectedGuestOrder = null;
+            SuccessMessage = $"Pesanan {order.Number} ditolak dan tidak menjadi transaksi.";
+        }
+        finally { IsBusy = false; }
+    }
+
     private void ConfigureNavigation()
     {
         NavigationItems.Clear();
@@ -617,6 +687,8 @@ public sealed class MainViewModel : ObservableObject
         ResetProductEditor();
         CurrentPage = "Dashboard";
         ShowCheckoutConfirmation = false;
+        ShowRejectGuestOrderConfirmation = false;
+        _guestOrderToReject = null;
         _pendingRequestId = null;
         ClearMessages();
     }
@@ -626,6 +698,6 @@ public sealed class MainViewModel : ObservableObject
     private void MarkApiUnavailable()
     {
         ApiAvailable = false;
-        ApiStatus = $"API belum terhubung · {ApiUrl}";
+        ApiStatus = _offlineDemo ? "Database demo belum siap" : $"API belum terhubung · {ApiUrl}";
     }
 }

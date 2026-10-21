@@ -65,4 +65,15 @@ public interface IKioskService
     Task<ServiceResult<GuestOrderDto>> PlaceOrderAsync(GuestOrderRequest request, CancellationToken cancellationToken = default);
     Task<ServiceResult<IReadOnlyList<GuestOrderDto>>> GetPendingOrdersAsync(CancellationToken cancellationToken = default);
     Task<ServiceResult<TransactionDto>> CompleteOrderAsync(long id, CancellationToken cancellationToken = default);
+    Task<ServiceResult<bool>> RejectOrderAsync(long id, CancellationToken cancellationToken = default);
+}
+
+public interface IPosAppServices : IDisposable
+{
+    IAuthService Auth { get; }
+    IProductService Products { get; }
+    ITransactionService Transactions { get; }
+    IDashboardService Dashboard { get; }
+    IKioskService Kiosk { get; }
+    Task<ServiceResult<bool>> CheckHealthAsync(CancellationToken cancellationToken = default);
 }

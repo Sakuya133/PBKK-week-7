@@ -56,6 +56,8 @@ try
     Check((await withoutLogin.Dashboard.GetTodayAsync()).Error == ErrorCode.Unauthorized, "dashboard memerlukan login");
     Check((await withoutLogin.Kiosk.GetPendingOrdersAsync()).Error == ErrorCode.Unauthorized,
         "antrean pesanan kiosk memerlukan login kasir");
+    Check((await withoutLogin.Kiosk.RejectOrderAsync(1)).Error == ErrorCode.Unauthorized,
+        "penolakan pesanan kiosk memerlukan login kasir");
     Check((await withoutLogin.Kiosk.PlaceOrderAsync(new("", PaymentMethod.Tunai, [], Guid.NewGuid()))).Error == ErrorCode.Validation,
         "pesanan tamu tanpa nama atau item ditolak sebelum akses database");
     Check((await withoutLogin.Kiosk.PlaceOrderAsync(new("Budi", PaymentMethod.Tunai,
@@ -179,6 +181,8 @@ try
         "akun terkunci setelah lima kegagalan");
     Check((await services.Auth.LoginAsync(adminName, "wrong")).Error == ErrorCode.Unauthorized, "login salah ditolak");
     Value(await services.Auth.LoginAsync(adminName, "Test123!"), "login admin benar");
+    Check((await services.Kiosk.RejectOrderAsync(1)).Error == ErrorCode.Forbidden,
+        "admin tidak dapat menolak pesanan tamu");
     Check((await services.Transactions.CheckoutAsync(new(null, PaymentMethod.Tunai,
         [new CheckoutItem(productId, 1)], Guid.NewGuid()))).Error == ErrorCode.Forbidden, "admin tidak dapat checkout");
     var before = Value(await services.Dashboard.GetTodayAsync(), "dashboard awal");
@@ -211,6 +215,32 @@ try
         "konfirmasi kasir membuat transaksi dengan nama tamu");
     Check((await services.Kiosk.CompleteOrderAsync(guestOrder.Id)).Error == ErrorCode.Conflict,
         "pesanan tamu yang sudah dibayar tidak dapat diproses dua kali");
+    Check((await services.Kiosk.RejectOrderAsync(guestOrder.Id)).Error == ErrorCode.Conflict,
+        "pesanan tamu yang sudah dibayar tidak dapat ditolak");
+    Check((await services.Kiosk.RejectOrderAsync(-1)).Error == ErrorCode.Validation,
+        "id pesanan yang tidak valid ditolak");
+    Check((await services.Kiosk.RejectOrderAsync(long.MaxValue)).Error == ErrorCode.NotFound,
+        "pesanan yang tidak ada tidak dapat ditolak");
+    var rejectedRequest = new GuestOrderRequest("Tamu batal", PaymentMethod.Tunai,
+        [new CheckoutItem(productId, 1)], Guid.NewGuid());
+    var rejectedOrder = Value(await anonymousKiosk.Kiosk.PlaceOrderAsync(rejectedRequest), "pesanan untuk ditolak");
+    Check(Value(await services.Kiosk.RejectOrderAsync(rejectedOrder.Id), "kasir menolak pesanan"),
+        "penolakan kasir berhasil");
+    Check(!Value(await services.Kiosk.GetPendingOrdersAsync(), "antrean setelah penolakan")
+        .Any(x => x.Id == rejectedOrder.Id), "pesanan ditolak hilang dari antrean");
+    Check((await services.Kiosk.RejectOrderAsync(rejectedOrder.Id)).Error == ErrorCode.Conflict,
+        "pesanan tidak dapat ditolak dua kali");
+    Check((await services.Kiosk.CompleteOrderAsync(rejectedOrder.Id)).Error == ErrorCode.Conflict,
+        "pesanan ditolak tidak dapat menjadi transaksi");
+    await using (var rejectedCheck = new SqlCommand(
+        "SELECT Status,TransactionId,RejectedAt,RejectedBy FROM dbo.GuestOrders WHERE Id=@id", db))
+    {
+        rejectedCheck.Parameters.Add("@id", SqlDbType.BigInt).Value = rejectedOrder.Id;
+        await using var rejectedReader = await rejectedCheck.ExecuteReaderAsync();
+        Check(await rejectedReader.ReadAsync() && rejectedReader.GetString(0) == "Ditolak"
+            && rejectedReader.IsDBNull(1) && !rejectedReader.IsDBNull(2) && !rejectedReader.IsDBNull(3),
+            "status dan jejak kasir penolak tersimpan tanpa transaksi");
+    }
     Check((await services.Transactions.CheckoutAsync(new(customerOne, PaymentMethod.Tunai,
         [new CheckoutItem(productId, unitsForTest - 1)], purchaseRequestId))).Error == ErrorCode.Conflict,
         "retry dengan RequestId sama tidak membuat transaksi kedua");

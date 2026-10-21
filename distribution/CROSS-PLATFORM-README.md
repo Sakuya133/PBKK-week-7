@@ -1,55 +1,22 @@
-# POS Desktop — panduan paket
+# MiKuGoMi POS — demo offline
 
-Paket ini menargetkan **Windows x64** atau **Ubuntu/Linux x64** dan berisi aplikasi Mikogomi POS Avalonia self-contained, logo Mikogomi, launcher, setup tool, SQL scripts, serta API lokal opsional. SQL Server tidak disertakan dan harus tersedia sebagai service lokal/jaringan.
+Pilih paket sesuai sistem operasi. **Tidak perlu memasang SQL Server atau menjalankan API.** Ekstrak seluruh arsip, lalu buka aplikasi.
 
-Pelanggan dapat membuat pesanan kiosk tanpa login; kasir harus login untuk melihat antrean dan mengonfirmasi pembayaran.
+## Windows x64
 
-## Ubuntu/Linux
+Buka `PosDesktop.exe` setelah ZIP diekstrak. Jika ingin shortcut, jalankan `Install-POS-Desktop-Shortcut.ps1` sekali. `Launch-POS-Desktop.cmd` juga tersedia.
 
-Prasyarat sistem: sesi desktop X11 atau XWayland dan paket `libx11-6`, `libice6`, `libsm6`, `libfontconfig1`. `curl` diperlukan untuk API lokal opsional; `x11-utils` memberi pengecekan display awal:
+## Ubuntu/Linux x64
 
-~~~bash
-sudo apt install libx11-6 libice6 libsm6 libfontconfig1 curl x11-utils
-~~~
+Dari terminal pada sesi desktop, jalankan `./launch-posdesktop.sh`. `./install-desktop.sh` opsional untuk membuat shortcut. Aplikasi memerlukan X11/XWayland dan pustaka grafis desktop Linux.
 
-Ekstrak TAR, lalu di terminal desktop Ubuntu jalankan:
+## Akun demo
 
-~~~bash
-tar -xzf POS-Desktop-linux-x64.tar.gz
-cd POS-Desktop-linux-x64
-./install-desktop.sh
-./launch-posdesktop.sh
-~~~
+- Admin: `admin` / `admin`
+- Kasir: `kasir` / `kasir`
+- Pelanggan: `pelanggan` / `pelanggan`
+- Pelanggan kedua: `pelanggan2` / `pelanggan2`
 
-Installer membuat shortcut **Mikogomi POS** di menu aplikasi dan Desktop. Klik shortcut untuk membuka aplikasi; launcher menangani path dengan spasi. Config API ada di `~/.config/posdesktop/pos-client.json` (atau `$XDG_CONFIG_HOME/posdesktop/pos-client.json`); log ada di `~/.local/state/posdesktop/logs/posdesktop.log`.
+SQLite lokal dibuat dan diisi otomatis saat pertama dibuka. Ada produk, satu transaksi, dan satu pesanan kiosk contoh. Perubahan tersimpan pada komputer ini; paket tidak menyinkronkan data ke komputer lain. Lokasi database: `%LOCALAPPDATA%\mikugomi-pos\demo.sqlite3` di Windows atau `${XDG_DATA_HOME:-~/.local/share}/mikugomi-pos/demo.sqlite3` di Linux.
 
-Avalonia memakai X11/XWayland default. Jika `XOpenDisplay failed`, jalankan dari terminal sesi desktop yang sama. Wayland perlu XWayland dan `DISPLAY`; launcher tidak menebak DISPLAY maupun mengubah otorisasi `XAUTHORITY`. SSH/headless tanpa X11 forwarding yang diotorisasi tidak dapat membuka jendela.
-
-## Windows
-
-Ekstrak `POS-Desktop-win-x64.zip` ke folder biasa. Di PowerShell jalankan `powershell -NoProfile -ExecutionPolicy Bypass -File .\Install-POS-Desktop-Shortcut.ps1` sekali, lalu klik **Mikogomi POS** di Desktop atau Start Menu. Shortcut membuka launcher tanpa jendela terminal; `Launch-POS-Desktop.cmd` dan `PosDesktop.exe` juga tersedia untuk menjalankan langsung. Path dengan spasi didukung. Config API: `%APPDATA%\posdesktop\pos-client.json`; log: `%LOCALAPPDATA%\POS Desktop\Logs\posdesktop.log`.
-
-## API dan database
-
-Atur alamat API dari file konfigurasi atau environment `POS_API_URL`. API yang berada di jaringan harus menggunakan HTTPS. Untuk menjalankan API dari paket yang sama, aktifkan launcher opsional dan sediakan connection string hanya di host API:
-
-Linux:
-
-~~~bash
-export POS_CONNECTION_STRING='Server=localhost;Database=PosDesktop;User ID=sa;Password=GANTI_PASSWORD;Encrypt=true;TrustServerCertificate=true'
-POS_START_LOCAL_API=true ./launch-posdesktop.sh
-~~~
-
-Windows PowerShell: set `POS_START_LOCAL_API=1` dan `POS_CONNECTION_STRING`, lalu jalankan `Launch-POS-Desktop.cmd`. API lokal dibatasi ke loopback dan development HTTP. Launcher menunggu health check, hanya menghentikan proses yang dimulainya, dan tetap membuka login jika API gagal. Connection string tidak diteruskan ke proses desktop.
-
-Setup schema dan seed dijalankan dari root folder paket di terminal tepercaya setelah mengatur `POS_CONNECTION_STRING`:
-
-~~~bash
-./Setup/PosSetup --demo
-~~~
-
-Pada Windows jalankan `.\Setup\PosSetup.exe --demo` dari PowerShell. Contoh akun demo: Admin `admin` / `Admin123!`, Kasir `kasir` / `Kasir123!`, Pelanggan `pelanggan` / `Pelanggan123!`, Pelanggan kedua `pelanggan2` / `Pelanggan234!`. Hanya untuk database pengembangan.
-
-## Pembuatan ulang dan verifikasi
-
-Dari source repository, `python3 scripts/package_cross_platform.py` mempublish client/API/setup self-contained untuk `linux-x64` dan `win-x64`, lalu membuat TAR/ZIP. Build Windows dari Linux adalah cross-publish; untuk memastikan runtime Windows, buka paket di Windows native. SQL integration memerlukan SQL Server terpisah.
+Untuk mulai lagi dari data awal, tutup aplikasi lalu pindahkan file database ke tempat cadangan. Panduan pengembangan SQL Server ada di `README.md`.
